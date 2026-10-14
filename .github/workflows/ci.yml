@@ -54,6 +54,8 @@ jobs:
       - name: Frontend build
         working-directory: desktop
         run: pnpm build
+      - name: Package engine bundle (Tauri resource)
+        run: scripts/package-engine.sh
       - name: cargo test
         working-directory: desktop/src-tauri
         run: cargo test --quiet
