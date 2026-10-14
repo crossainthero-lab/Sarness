@@ -1,0 +1,59 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Sarness",
+  "version": "0.1.0",
+  "identifier": "ai.sarness.desktop",
+  "build": {
+    "beforeDevCommand": "pnpm dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "pnpm build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Sarness",
+        "width": 1480,
+        "height": 940,
+        "minWidth": 980,
+        "minHeight": 640,
+        "decorations": true,
+        "resizable": true,
+        "center": true,
+        "backgroundColor": "#0b0b0e"
+      }
+    ],
+    "security": {
+      "csp": {
+        "default-src": "'self'",
+        "script-src": "'self'",
+        "style-src": "'self' 'unsafe-inline'",
+        "font-src": "'self' data:",
+        "img-src": "'self' data: blob: http://127.0.0.1:*",
+        "media-src": "'self' blob: http://127.0.0.1:*",
+        "connect-src": "'self' ipc: http://ipc.localhost http://127.0.0.1:* ws://127.0.0.1:*"
+      },
+      "freezePrototype": false
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["deb", "rpm", "appimage"],
+    "category": "GraphicsAndDesign",
+    "shortDescription": "Self-hosted AI workstation",
+    "longDescription": "Sarness (Sarja Harness) is a desktop workstation for local LLM chat, image and video generation and node-based AI workflows, powered by your own Sarness Engine server.",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.png"
+    ],
+    "resources": {
+      "../../dist/sarness-engine.tar.gz": "engine/sarness-engine.tar.gz"
+    },
+    "linux": {
+      "deb": { "depends": ["openssh-client"], "section": "graphics" },
+      "rpm": { "depends": ["openssh-clients"] }
+    }
+  }
+}

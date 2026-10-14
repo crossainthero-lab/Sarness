@@ -1,0 +1,259 @@
+/* ==========================================================================
+   Sarness Obsidian — design tokens and base styles
+   Deep graphite surfaces, restrained violet accents, lavender selection,
+   clean off-white type. Motion is short (120–240ms) and GPU-friendly
+   (opacity / transform only).
+   ========================================================================== */
+
+:root {
+  /* Surfaces (darkest → raised) */
+  --bg-0: #08080a;
+  --bg-1: #0d0d10;
+  --bg-2: #121216;
+  --bg-3: #17171c;
+  --bg-4: #1e1e24;
+  --bg-5: #26262d;
+  --glass: rgba(18, 18, 23, 0.74);
+  --glass-strong: rgba(14, 14, 18, 0.9);
+  --scrim: rgba(4, 4, 6, 0.62);
+
+  /* Lines */
+  --line-0: rgba(255, 255, 255, 0.045);
+  --line-1: rgba(255, 255, 255, 0.075);
+  --line-2: rgba(255, 255, 255, 0.12);
+
+  /* Text */
+  --text-0: #f3f2f7;
+  --text-1: #cfcdd8;
+  --text-2: #9895a6;
+  --text-3: #686574;
+  --text-inv: #0c0b10;
+
+  /* Accent — violet / lavender (no pink) */
+  --accent: #8b5cf6;
+  --accent-hi: #a78bfa;
+  --accent-lo: #6d28d9;
+  --lavender: #c9bdfd;
+  --accent-ghost: rgba(139, 92, 246, 0.12);
+  --select-bg: rgba(167, 139, 250, 0.13);
+  --select-line: rgba(201, 189, 253, 0.34);
+  --focus: 0 0 0 2px rgba(167, 139, 250, 0.55);
+
+  /* Status */
+  --ok: #5fd39b;
+  --ok-bg: rgba(95, 211, 155, 0.12);
+  --warn: #f2b65a;
+  --warn-bg: rgba(242, 182, 90, 0.12);
+  --err: #f47174;
+  --err-bg: rgba(244, 113, 116, 0.12);
+  --info: #7cc7f5;
+  --info-bg: rgba(124, 199, 245, 0.12);
+
+  /* Geometry */
+  --r-xs: 5px;
+  --r-sm: 7px;
+  --r-md: 10px;
+  --r-lg: 14px;
+  --r-xl: 20px;
+  --r-full: 999px;
+
+  /* Elevation */
+  --shadow-1: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-2: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 10px 30px rgba(0, 0, 0, 0.45);
+  --shadow-3: 0 1px 0 rgba(255, 255, 255, 0.05) inset, 0 24px 64px rgba(0, 0, 0, 0.6);
+  --glow: 0 0 0 1px rgba(167, 139, 250, 0.35), 0 0 24px rgba(139, 92, 246, 0.22);
+
+  /* Motion */
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --t-1: 120ms;
+  --t-2: 180ms;
+  --t-3: 240ms;
+
+  /* Type */
+  --font-ui: 'Inter Variable', 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+  --fs-xs: 11px;
+  --fs-sm: 12.5px;
+  --fs-md: 13.5px;
+  --fs-lg: 15px;
+  --fs-xl: 18px;
+  --fs-2xl: 24px;
+  --fs-3xl: 32px;
+
+  /* Layout */
+  --sidebar-w: 232px;
+  --sidebar-w-collapsed: 60px;
+  --statusbar-h: 28px;
+
+  color-scheme: dark;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: var(--bg-0);
+  color: var(--text-0);
+  font-family: var(--font-ui);
+  font-size: var(--fs-md);
+  line-height: 1.5;
+  font-feature-settings: 'cv11', 'ss01', 'ss03', 'calt';
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+#app {
+  height: 100%;
+}
+
+::selection {
+  background: rgba(167, 139, 250, 0.32);
+  color: var(--text-0);
+}
+
+h1, h2, h3, h4 {
+  margin: 0;
+  font-weight: 600;
+  letter-spacing: -0.012em;
+  color: var(--text-0);
+}
+h1 { font-size: var(--fs-2xl); letter-spacing: -0.022em; }
+h2 { font-size: var(--fs-xl); }
+h3 { font-size: var(--fs-lg); }
+p { margin: 0; }
+
+a {
+  color: var(--accent-hi);
+  text-decoration: none;
+}
+a:hover { text-decoration: underline; }
+
+button {
+  font: inherit;
+  color: inherit;
+}
+
+input,
+textarea,
+select {
+  font: inherit;
+  color: inherit;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+code, pre, kbd, .mono {
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+}
+
+.selectable {
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+:focus { outline: none; }
+:focus-visible { box-shadow: var(--focus); border-radius: var(--r-sm); }
+
+/* Scrollbars: thin and quiet */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
+}
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.09);
+  border-radius: 10px;
+  border: 3px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover { background-color: rgba(255, 255, 255, 0.18); }
+
+/* Utility */
+.muted { color: var(--text-2); }
+.faint { color: var(--text-3); }
+.tnum { font-variant-numeric: tabular-nums; }
+.row { display: flex; align-items: center; gap: 8px; }
+.col { display: flex; flex-direction: column; gap: 8px; }
+.spacer { flex: 1; }
+.truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.eyebrow {
+  font-size: var(--fs-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-3);
+  font-weight: 600;
+}
+
+.surface {
+  background: var(--bg-2);
+  border: 1px solid var(--line-1);
+  border-radius: var(--r-lg);
+}
+.glass {
+  background: var(--glass);
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  border: 1px solid var(--line-1);
+}
+
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes rise-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@keyframes pop-in { from { opacity: 0; transform: scale(0.97); } to { opacity: 1; transform: none; } }
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes shimmer {
+  0% { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+@keyframes pulse-ring {
+  0% { box-shadow: 0 0 0 0 rgba(167, 139, 250, 0.45); }
+  70% { box-shadow: 0 0 0 8px rgba(167, 139, 250, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(167, 139, 250, 0); }
+}
+
+.skeleton {
+  background: linear-gradient(90deg, var(--bg-3) 0px, var(--bg-4) 120px, var(--bg-3) 240px);
+  background-size: 800px 100%;
+  animation: shimmer 1.4s linear infinite;
+  border-radius: var(--r-md);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 1ms !important;
+    transition-duration: 1ms !important;
+  }
+}
+
+/* Shared tooltip element (see lib/ui/tooltip.ts) */
+.sarness-tooltip {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 10000;
+  display: none;
+  pointer-events: none;
+  max-width: 280px;
+  padding: 5px 9px;
+  border-radius: var(--r-sm);
+  background: rgba(30, 29, 37, 0.96);
+  border: 1px solid var(--line-2);
+  color: var(--text-0);
+  font-size: var(--fs-xs);
+  font-weight: 500;
+  line-height: 1.4;
+  box-shadow: var(--shadow-2);
+  transition: opacity var(--t-1) var(--ease);
+}

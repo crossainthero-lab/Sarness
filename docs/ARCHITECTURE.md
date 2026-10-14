@@ -1,0 +1,115 @@
+# Sarness architecture
+
+Sarness is two programs that talk over a versioned HTTP/WebSocket API:
+
+```
+┌──────────────────────── Desktop (Tauri 2) ────────────────────────┐        ┌──────────────────── AI server ─────────────────────┐
+│  Svelte 5 UI (webview)                                            │        │  Sarness Engine (Python, FastAPI, uvicorn)          │
+│   views: Workspace · Images · Videos · Chat · Library · Models ·  │        │                                                     │
+│          Settings · Advanced workflow editor (Svelte Flow)        │        │  API process (no torch import, never touches CUDA)  │
+│        │ fetch / SSE / WebSocket to http://127.0.0.1:<port>       │        │   ├─ SQLite (WAL): jobs, generations, files,        │
+│        ▼  + per-launch session key                                │  HTTP  │   │   projects, chats, workflows, models, downloads │
+│  Rust core                                                        │ ─────► │   ├─ Job service: queue, admission control,        │
+│   ├─ loopback reverse proxy (axum): injects the API token,        │  (LAN, │   │   OOM retry, crash recovery                     │
+│   │  streams bodies, bridges /v1/events WebSocket,                │ Tail-  │   ├─ Worker supervisor ──spawn──► GPU worker proc   │
+│   │  content-addressed media cache (offline viewing)              │ scale  │   │                              ├─ workflow exec  │
+│   ├─ connection profiles + OS keyring tokens                      │  or    │   │                              ├─ model manager   │
+│   ├─ SSH tunnels (ssh -L, key auth, auto-restart)                 │  SSH)  │   │                              └─ diffusers/torch │
+│   ├─ discovery (tailscale status + /v1/health probe)              │        │   ├─ llama.cpp manager ──spawn──► llama-server      │
+│   └─ guided installer (scp + install-engine.sh over SSH)          │        │   ├─ downloads (resumable HF), model registry       │
+└───────────────────────────────────────────────────────────────────┘        │   └─ event bus → /v1/events                         │
+                                                                             └─────────────────────────────────────────────────────┘
+```
+
+## Why these boundaries
+
+* **The webview never sees the API token.** All engine traffic goes through the
+  Rust loopback proxy, which adds `Authorization: Bearer …`. The webview only
+  holds a random per-launch session key, so other local processes cannot use the
+  proxy either. It also removes mixed-content/CORS issues for remote `http://`
+  engines and lets SSH tunnels slot in transparently.
+* **CUDA lives in a separate process.** The GPU worker is spawned with
+  `multiprocessing` (`spawn`). A segfault, driver error or runaway allocation
+  kills only the worker; the API keeps serving, the supervisor marks or retries
+  the job and starts a fresh worker for the next one. When idle for the
+  configured time the worker exits, which returns *all* VRAM (including the CUDA
+  context) to the system.
+* **llama.cpp runs as `llama-server`.** The engine downloads the official prebuilt
+  CUDA (or Vulkan/CPU) release, starts one server per loaded model on a random
+  loopback port and proxies its OpenAI-compatible streaming API. Remote
+  OpenAI-compatible endpoints use the same code path.
+
+## Jobs and GPU scheduling
+
+1. `POST /v1/jobs` validates the workflow (types, required inputs, cycles, model
+   categories/families, input files), resolves `seed = -1` to concrete seeds,
+   derives a VRAM estimate and persists the job as `queued`.
+2. The scheduler loop dispatches the oldest queued job when the worker is free.
+   **Admission control** compares the estimate with free VRAM (plus VRAM the
+   worker can reclaim from its own cache). If an *idle* chat model is in the way it
+   is unloaded (configurable); if the chat model is streaming, the job waits and
+   shows why.
+3. The worker executes the graph; progress, latent previews and per-node states
+   stream back over the pipe and out through `/v1/events`.
+4. Outputs are written by the worker, then registered (SHA-256, thumbnail,
+   generation row with full lineage metadata and the resolved workflow).
+5. Failure handling:
+   * **CUDA OOM** → the worker releases every model and clears caches; the job is
+     re-queued once with `memory_mode=offload` (configurable), otherwise it fails
+     with an actionable message attributed to the node.
+   * **Worker crash** → job retried until `job_max_attempts`, then failed.
+   * **Engine restart** → `running` jobs are re-queued (attempt counter incremented)
+     or failed once attempts are exhausted; queued jobs simply continue;
+     interrupted downloads become `paused` and resume from the partial file.
+   * **Cancel** → cooperative (checked inside every sampler step); if the worker
+     does not stop within 25 s it is killed and restarted.
+
+## Memory placement
+
+| Model family | `gpu` | `offload` | `split` (video only) | `sequential` |
+|---|---|---|---|---|
+| SDXL / SD1.5 | all on GPU | diffusers model CPU offload | — | layer-by-layer |
+| Wan | all on GPU | text encoder leaf-streamed **and** transformer blocks streamed | transformer + VAE on GPU, UMT5 text encoder leaf-streamed from RAM, tiled VAE decode | everything leaf-streamed |
+
+`auto` picks the fastest placement whose estimate fits the *free* VRAM after
+evicting other cached models. For LLMs, "all layers" uses llama.cpp's `--fit` so
+a model that does not fully fit is partially offloaded instead of crashing.
+
+## The workflow engine
+
+* `workflow/types.py` — socket types, `Param`/`Socket`/`NodeSpec`.
+* `workflow/registry.py` — node registry; node modules register on import and keep
+  heavy imports (torch, diffusers) inside run functions so the API process can
+  publish the node library and validate graphs without CUDA.
+* `workflow/graph.py` — validation, Kahn topological order with pruning to
+  ancestors of output nodes, seed resolution.
+* `workflow/executor.py` — runs nodes in order; LRU cache keyed by
+  `(type, params, upstream keys)` so changing only the seed re-runs only the
+  sampler and its descendants; cancellation; error attribution with downstream
+  nodes marked `skipped`; weighted progress; **lineage** — each node can annotate
+  provenance (model, prompt, seed, LoRAs…) that flows to output nodes and into the
+  saved metadata.
+* `workflow/templates.py` — simple mode is not a separate code path: simple
+  parameters compile into a real graph, and `to_simple()` maps a graph back only if
+  it is *structurally identical* to what simple mode would build.
+
+## Persistence
+
+All canonical data lives on the server under the engine data directory
+(`~/.local/share/sarness-engine` by default):
+
+```
+config.json        bind address, port, token hash, URL-signing key (0600)
+sarness.db         SQLite database (WAL)
+models/            llm/ image/ video/ upscaler/ vae/ lora/ controlnet/
+outputs/images/YYYY/MM/sarness-…png     generated images (PNG embeds metadata)
+outputs/videos/YYYY/MM/sarness-…mp4     generated videos
+thumbs/            WebP thumbnails
+uploads/           reference images, masks, chat attachments
+bin/llama/         llama.cpp runtime
+logs/              engine.log, worker.log, llama-server.log
+```
+
+The desktop keeps only connection profiles (`~/.config/sarness/profiles.json`),
+tokens (system keyring; 0600 file fallback) and an LRU media cache
+(`~/.cache/sarness/media`, 6 GB cap).

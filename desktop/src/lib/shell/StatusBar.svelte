@@ -1,0 +1,105 @@
+<script lang="ts">
+  import { Cpu, ListTodo, MessageSquareText, RefreshCw, Server } from '@lucide/svelte';
+  import { activeProfile, conn, reconnectNow } from '../stores/connection.svelte';
+  import { activeJobs } from '../stores/jobs.svelte';
+  import { models } from '../stores/models.svelte';
+  import { prefs, persistPrefs } from '../stores/prefs.svelte';
+  import { mib } from '../util/format';
+  import { tooltip } from '../ui/tooltip';
+
+  const gpu = $derived(conn.stats?.gpus?.[0] ?? conn.system?.hardware.gpus?.[0] ?? null);
+  const gpuName = $derived(conn.system?.hardware.gpus?.[0]?.name?.replace('NVIDIA GeForce ', '') ?? null);
+  const vramPct = $derived(gpu ? gpu.vram_used_mb / gpu.vram_total_mb : 0);
+  const running = $derived(activeJobs().filter((j) => j.status === 'running').length);
+  const queued = $derived(activeJobs().filter((j) => j.status === 'queued').length);
+  const llm = $derived(models.llm);
+  const stateLabel = $derived(
+    { online: 'Connected', offline: 'Offline — reconnecting', connecting: 'Connecting…', booting: '', unconfigured: 'No server' }[conn.state],
+  );
+</script>
+
+<footer class="status">
+  <button class="seg conn {conn.state}" onclick={() => conn.state === 'offline' && reconnectNow()} use:tooltip={conn.lastError ?? stateLabel}>
+    <span class="led"></span>
+    <Server />
+    <span class="truncate">{activeProfile()?.name ?? 'Server'}</span>
+    <span class="faint">· {stateLabel}</span>
+    {#if conn.state === 'offline'}<RefreshCw class="spin" />{/if}
+  </button>
+
+  {#if gpu && conn.state === 'online'}
+    <div class="seg" use:tooltip={`VRAM ${mib(gpu.vram_used_mb)} of ${mib(gpu.vram_total_mb)} · GPU ${gpu.utilization_pct}%${gpu.temperature_c ? ` · ${gpu.temperature_c}°C` : ''}`}>
+      <Cpu />
+      <span>{gpuName}</span>
+      <span class="bar"><span style="transform:scaleX({vramPct})" class:hot={vramPct > 0.9}></span></span>
+      <span class="tnum faint">{mib(gpu.vram_used_mb)} / {mib(gpu.vram_total_mb)}</span>
+      <span class="tnum faint">{gpu.utilization_pct}%</span>
+    </div>
+  {/if}
+
+  <div class="spacer"></div>
+
+  {#if llm && llm.state !== 'stopped'}
+    <button class="seg link" onclick={() => { prefs.view = 'chat'; persistPrefs(); }} use:tooltip={llm.error ?? `Chat model ${llm.state}`}>
+      <MessageSquareText />
+      <span class="truncate" style="max-width:220px">{llm.model_name ?? llm.model_id}</span>
+      <span class="pill {llm.state}">{llm.state === 'ready' ? (llm.active_streams ? 'generating' : 'loaded') : llm.state}</span>
+    </button>
+  {/if}
+
+  <button class="seg link" onclick={() => { prefs.view = 'workspace'; persistPrefs(); }} use:tooltip={'Generation queue'}>
+    <ListTodo />
+    {#if running || queued}
+      <span>{running} running{queued ? ` · ${queued} queued` : ''}</span>
+    {:else}
+      <span class="faint">Queue idle</span>
+    {/if}
+  </button>
+  {#if conn.system}<span class="seg faint">Engine {conn.system.engine.version}</span>{/if}
+</footer>
+
+<style>
+  .status {
+    grid-column: 2;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: 0 8px;
+    background: var(--bg-0);
+    border-left: 1px solid var(--line-0);
+    font-size: var(--fs-xs);
+    color: var(--text-2);
+    min-width: 0;
+    overflow: hidden;
+  }
+  .seg {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    height: 22px;
+    padding: 0 8px;
+    border: 0;
+    border-radius: 6px;
+    background: none;
+    color: inherit;
+    font-size: inherit;
+    white-space: nowrap;
+    min-width: 0;
+  }
+  button.seg { cursor: pointer; }
+  button.seg:hover { background: rgba(255, 255, 255, 0.05); color: var(--text-0); }
+  .seg :global(svg) { width: 13px; height: 13px; flex-shrink: 0; }
+  .led { width: 7px; height: 7px; border-radius: 50%; background: var(--text-3); flex-shrink: 0; }
+  .online .led { background: var(--ok); box-shadow: 0 0 8px rgba(95, 211, 155, 0.7); }
+  .offline .led { background: var(--warn); box-shadow: 0 0 8px rgba(242, 182, 90, 0.6); }
+  .connecting .led { background: var(--lavender); animation: pulse-ring 1.4s infinite; }
+  .bar { width: 64px; height: 4px; border-radius: 3px; background: rgba(255, 255, 255, 0.08); overflow: hidden; }
+  .bar span { display: block; height: 100%; background: var(--accent-hi); transform-origin: left; transition: transform 600ms var(--ease-out); }
+  .bar span.hot { background: var(--warn); }
+  .pill { padding: 0 6px; border-radius: 8px; background: rgba(255, 255, 255, 0.07); font-weight: 600; }
+  .pill.ready { color: var(--ok); }
+  .pill.loading { color: var(--lavender); }
+  .pill.error { color: var(--err); }
+  .spacer { flex: 1; }
+  :global(.spin) { animation: spin 1.2s linear infinite; }
+</style>

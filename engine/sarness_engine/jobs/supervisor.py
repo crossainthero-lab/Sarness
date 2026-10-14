@@ -1,0 +1,173 @@
+"""Supervises the GPU worker process: spawn, message routing, crash detection,
+hard-cancel escalation and idle shutdown (which returns all VRAM to the system)."""
+
+from __future__ import annotations
+
+import logging
+import multiprocessing as mp
+import threading
+import time
+from typing import Any, Callable
+
+log = logging.getLogger("sarness.supervisor")
+
+HARD_CANCEL_AFTER_S = 25.0
+
+
+class WorkerSupervisor:
+    def __init__(self, options: dict[str, Any], on_message: Callable[[dict[str, Any]], None],
+                 on_crash: Callable[[str | None, str], None]):
+        self.options = options
+        self.on_message = on_message
+        self.on_crash = on_crash
+        self._ctx = mp.get_context("spawn")
+        self._proc: mp.Process | None = None
+        self._conn = None
+        self._lock = threading.RLock()
+        self._reader: threading.Thread | None = None
+        self.current_job: str | None = None
+        self.info: dict[str, Any] = {}
+        self.last_status: dict[str, Any] = {}
+        self.last_active = time.time()
+        self._ready = threading.Event()
+        self._cancel_deadline: float | None = None
+        self._expected_exit = False
+
+    # ------------------------------------------------------------- lifecycle
+    @property
+    def alive(self) -> bool:
+        return self._proc is not None and self._proc.is_alive()
+
+    @property
+    def busy(self) -> bool:
+        return self.current_job is not None
+
+    def start(self, timeout: float = 120.0) -> None:
+        with self._lock:
+            if self.alive:
+                return
+            from ..runtime.worker import worker_main
+
+            parent, child = self._ctx.Pipe(duplex=True)
+            self._ready.clear()
+            self._expected_exit = False
+            self._proc = self._ctx.Process(target=worker_main, args=(child, self.options), name="sarness-gpu-worker",
+                                           daemon=True)
+            self._proc.start()
+            child.close()
+            self._conn = parent
+            self._reader = threading.Thread(target=self._read_loop, args=(parent, self._proc), daemon=True,
+                                            name="supervisor-reader")
+            self._reader.start()
+            log.info("spawned GPU worker pid=%s", self._proc.pid)
+        if not self._ready.wait(timeout):
+            raise RuntimeError("GPU worker did not become ready")
+        if not self.alive:
+            raise RuntimeError("GPU worker failed to start (see logs/worker.log)")
+
+    def stop(self, timeout: float = 10.0) -> None:
+        with self._lock:
+            if not self._proc:
+                return
+            self._expected_exit = True
+            try:
+                self._conn.send({"type": "shutdown"})
+            except Exception:
+                pass
+            self._proc.join(timeout)
+            if self._proc.is_alive():
+                self._proc.kill()
+                self._proc.join(5)
+            self._proc = None
+            self.info = {}
+            self.last_status = {}
+            log.info("GPU worker stopped")
+
+    def _send(self, msg: dict[str, Any]) -> None:
+        with self._lock:
+            if not self.alive:
+                raise RuntimeError("GPU worker is not running")
+            self._conn.send(msg)
+
+    # --------------------------------------------------------------- control
+    def run(self, payload: dict[str, Any]) -> None:
+        self.start()
+        self.current_job = payload["job_id"]
+        self.last_active = time.time()
+        self._cancel_deadline = None
+        self._send({"type": "run", **payload})
+
+    def cancel(self, job_id: str) -> None:
+        if self.current_job != job_id:
+            return
+        try:
+            self._send({"type": "cancel", "job_id": job_id})
+        except RuntimeError:
+            return
+        self._cancel_deadline = time.time() + HARD_CANCEL_AFTER_S
+
+    def release(self) -> None:
+        if self.alive and not self.busy:
+            self._send({"type": "release"})
+
+    def request_status(self) -> None:
+        if self.alive:
+            try:
+                self._send({"type": "status"})
+            except Exception:
+                pass
+
+    def tick(self, idle_unload_s: float) -> None:
+        """Called periodically: escalate stuck cancels, idle-stop the worker."""
+        if self._cancel_deadline and time.time() > self._cancel_deadline and self.current_job:
+            log.warning("job %s ignored cancel; killing worker", self.current_job)
+            job = self.current_job
+            self._expected_exit = True
+            with self._lock:
+                if self._proc:
+                    self._proc.kill()
+            self._cancel_deadline = None
+            self.current_job = None
+            self.on_message({"type": "cancelled", "job_id": job, "forced": True})
+        if self.alive and not self.busy and idle_unload_s > 0 and time.time() - self.last_active > idle_unload_s:
+            log.info("GPU worker idle for %.0fs; stopping to free VRAM", idle_unload_s)
+            self.stop()
+
+    # ---------------------------------------------------------------- reader
+    def _read_loop(self, conn, proc) -> None:
+        while True:
+            try:
+                msg = conn.recv()
+            except (EOFError, OSError):
+                break
+            t = msg.get("type")
+            if t == "ready":
+                self.info = msg
+                self._ready.set()
+                continue
+            if t == "status":
+                self.last_status = msg
+            if t in ("done", "failed", "cancelled"):
+                if msg.get("job_id") == self.current_job:
+                    self.current_job = None
+                    self._cancel_deadline = None
+                self.last_active = time.time()
+                if t == "done":
+                    self.last_status = {**self.last_status, "loaded": msg.get("loaded", [])}
+            try:
+                self.on_message(msg)
+            except Exception:  # pragma: no cover
+                log.exception("error handling worker message %s", t)
+        proc.join(2)
+        code = proc.exitcode
+        if self._proc is not None and self._proc is not proc:
+            return  # a newer worker has already taken over
+        self._proc = None
+        job = self.current_job
+        self.current_job = None
+        self.info = {}
+        self.last_status = {}
+        self._ready.set()
+        if not self._expected_exit:
+            log.error("GPU worker exited unexpectedly (code %s)", code)
+            self.on_crash(job, f"GPU worker exited unexpectedly (exit code {code})")
