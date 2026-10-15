@@ -72,3 +72,14 @@ export function handleCodeCopy(e: MouseEvent) {
     setTimeout(() => (btn.textContent = 'Copy'), 1400);
   });
 }
+
+/** Syntax-highlight code to sanitised HTML (used by the code panel). */
+export function highlightCode(code: string, lang: string): string {
+  const language = lang.toLowerCase();
+  try {
+    if (language && hljs.getLanguage(language)) return hljs.highlight(code, { language }).value;
+  } catch {
+    /* fall through */
+  }
+  return escape(code);
+}

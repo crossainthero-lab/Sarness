@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { ArrowUp, Download, FileJson, FolderInput, MessageSquarePlus, MessagesSquare, Paperclip, Pin, PinOff, Power, Search, Settings2, Square, Trash2, Type, Upload, X, FileText } from '@lucide/svelte';
+  import { ArrowUp, Download, FileJson, FolderInput, MessageSquarePlus, MessagesSquare, Paperclip, Pin, PinOff, Power, Search, Settings2, Square, Trash2, Type, Upload, X, FileText, History, Code2 } from '@lucide/svelte';
   import { invoke } from '@tauri-apps/api/core';
   import { open as openDialog, save as saveDialog } from '@tauri-apps/plugin-dialog';
   import { tick } from 'svelte';
@@ -21,14 +21,27 @@
   import Select from '../ui/Select.svelte';
   import Slider from '../ui/Slider.svelte';
   import Spinner from '../ui/Spinner.svelte';
-  import Splitter from '../ui/Splitter.svelte';
+  import CodePanel from '../chat/CodePanel.svelte';
+  import { CODE_SYSTEM_PROMPT, extractBlocks } from '../chat/code';
+  import { convRequest, paneKey } from '../stores/panes.svelte';
   import TextArea from '../ui/TextArea.svelte';
   import TextInput from '../ui/TextInput.svelte';
   import Toggle from '../ui/Toggle.svelte';
   import { confirmDialog, promptDialog } from '../ui/dialogs.svelte';
   import { ago, bytes, mib } from '../util/format';
 
-  let { active }: { active: boolean } = $props();
+  let { active, paneId, variant = 'chat' }: { active: boolean; paneId: string; variant?: 'chat' | 'code' } = $props();
+  const isCode = variant === 'code';
+  const convKey = `sarness.${paneKey(paneId, 'conv')}`;
+  const modelKey = `sarness.${paneKey(paneId, 'model')}`;
+  const store = {
+    get(k: string) { try { return localStorage.getItem(k); } catch { return null; } },
+    set(k: string, v: string | null) { try { v === null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch { /* ignore */ } },
+  };
+  let pickedRef = $state<string | null>(store.get(modelKey));
+  let listOpen = $state(false);
+  let width = $state(900);
+  const split = $derived(isCode && width >= 720);
 
   let list = $state<Conversation[]>([]);
   let q = $state('');
@@ -41,16 +54,16 @@
   let abort: AbortController | null = null;
   let scroller: HTMLDivElement | undefined = $state();
   let composerEl: HTMLTextAreaElement | null = $state(null);
-  let listW = $state(280);
   let settingsOpen = $state(false);
   let menu = $state({ open: false, x: 0, y: 0, items: [] as MenuItem[] });
   let loadedList = false;
   let uploading = $state(false);
   let stick = true;
 
-  const modelRef = $derived(conv?.model_ref ?? prefs.lastChatModel ?? models.chatModels[0]?.ref ?? null);
+  const modelRef = $derived(conv?.model_ref ?? pickedRef ?? prefs.lastChatModel ?? models.chatModels[0]?.ref ?? null);
   const chatModel = $derived(models.chatModels.find((m) => m.ref === modelRef));
   const path = $derived(pathTo(msgs, conv?.active_leaf_id ?? null));
+  const blocks = $derived(isCode ? extractBlocks(path) : []);
   const llm = $derived(models.llm);
   const localLoaded = $derived(chatModel?.local && llm?.state === 'ready' && `local:${llm.model_id}` === modelRef);
   const pinned = $derived(list.filter((c) => c.pinned));
@@ -60,7 +73,17 @@
     if (active && !loadedList) {
       loadedList = true;
       refreshList();
+      const saved = store.get(convKey);
+      if (saved) openConv(saved, true);
       if (!models.chatModels.length) loadModels().catch(() => {});
+    }
+  });
+
+  let seenRequest = convRequest.n;
+  $effect(() => {
+    if (convRequest.n !== seenRequest) {
+      seenRequest = convRequest.n;
+      if (convRequest.paneId === paneId && convRequest.convId) openConv(convRequest.convId);
     }
   });
 
@@ -80,23 +103,28 @@
     if (loadedList) searchTimer = setTimeout(refreshList, 220);
   });
 
-  async function openConv(id: string) {
+  async function openConv(id: string, restoring = false) {
     if (streamingId) return;
+    listOpen = false;
     try {
       const c = await api.get<Conversation>(`/v1/chat/conversations/${id}`);
       msgs = c.messages ?? [];
       conv = c;
+      store.set(convKey, c.id);
       stick = true;
       await tick();
       scrollBottom(true);
       composerEl?.focus();
     } catch (e) {
-      toastError(e);
+      if (restoring) store.set(convKey, null);
+      else toastError(e);
     }
   }
 
   async function newChat() {
     if (streamingId) return;
+    store.set(convKey, null);
+    listOpen = false;
     conv = null;
     msgs = [];
     input = '';
@@ -107,8 +135,13 @@
 
   async function ensureConv(): Promise<Conversation> {
     if (conv) return conv;
-    const c = await api.post<Conversation>('/v1/chat/conversations', { model_ref: modelRef, ...destination() });
+    const c = await api.post<Conversation>('/v1/chat/conversations', {
+      model_ref: modelRef,
+      ...(isCode ? { system_prompt: CODE_SYSTEM_PROMPT, title: 'Code session' } : {}),
+      ...destination(),
+    });
     conv = { ...c, messages: [] };
+    store.set(convKey, c.id);
     msgs = [];
     list = [c, ...list];
     return conv;
@@ -208,6 +241,8 @@
 
   async function setModel(ref: string | null) {
     if (!ref) return;
+    pickedRef = ref;
+    store.set(modelKey, ref);
     prefs.lastChatModel = ref;
     persistPrefs();
     if (conv) {
@@ -355,8 +390,9 @@
   })));
 </script>
 
-<div class="chat">
-  <aside class="convs" style="width:{listW}px">
+<div class="chat" bind:clientWidth={width}>
+  {#if listOpen}
+  <aside class="convs">
     <div class="ch">
       <Button variant="secondary" block onclick={newChat}><MessageSquarePlus />New chat</Button>
       <IconButton label="Import conversation" onclick={importConv}><Upload /></IconButton>
@@ -380,11 +416,13 @@
       {#if !list.length}<p class="faint empty">{q ? 'No matches' : 'No conversations yet'}</p>{/if}
     </div>
   </aside>
-  <Splitter id="chat-list" bind:size={listW} min={220} max={420} />
+  <button class="scrim" aria-label="Close history" onclick={() => (listOpen = false)}></button>
+  {/if}
 
-  <section class="thread">
+  <section class="thread" class:withcode={split}>
     <header>
-      <div class="title truncate">{conv?.title ?? 'New conversation'}</div>
+      <IconButton label="Conversation history" onclick={() => (listOpen = !listOpen)}><History /></IconButton>
+      <div class="title truncate">{conv?.title ?? (isCode ? 'New code session' : 'New conversation')}</div>
       <div class="spacer"></div>
       <div class="msel"><Select value={modelRef} options={modelOptions} size="sm" onchange={setModel} placeholder="Choose a model" /></div>
       {#if chatModel?.local}
@@ -447,6 +485,9 @@
       </div>
     </div>
   </section>
+  {#if split}
+    <section class="codecol"><CodePanel {blocks} onattach={attach} /></section>
+  {/if}
 </div>
 
 <Menu bind:open={menu.open} bind:x={menu.x} bind:y={menu.y} bind:items={menu.items} />
@@ -478,32 +519,34 @@
 </Modal>
 
 <style>
-  .chat { display: flex; height: 100%; min-height: 0; }
-  .convs { flex-shrink: 0; display: flex; flex-direction: column; background: var(--bg-1); min-height: 0; }
+  .chat { position: relative; display: flex; height: 100%; min-height: 0; }
+  .convs { position: absolute; z-index: 20; left: 0; top: 0; bottom: 0; width: min(300px, 86%); display: flex; flex-direction: column; background: var(--bg-1); border-right: 1px solid var(--line-1); box-shadow: var(--shadow-3); animation: rise-in var(--t-2) var(--ease); }
+  .scrim { position: absolute; inset: 0; z-index: 19; border: 0; background: var(--scrim); cursor: default; }
+  .codecol { flex: 0 0 46%; min-width: 300px; border-left: 1px solid var(--line-1); min-height: 0; }
   .ch { display: flex; gap: 6px; padding: 14px 12px 8px; }
   .search { padding: 0 12px 8px; }
   .clist { flex: 1; overflow-y: auto; padding: 4px 8px 12px; }
   .sect { padding: 10px 8px 4px; font-size: 10.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-3); }
   .citem { display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 10px; border: 0; border-radius: var(--r-md); background: none; color: var(--text-1); cursor: pointer; text-align: left; transition: background var(--t-1); }
-  .citem:hover { background: rgba(255, 255, 255, 0.045); color: var(--text-0); }
+  .citem:hover { background: rgba(var(--fg-rgb), 0.045); color: var(--text-0); }
   .citem.on { background: var(--select-bg); color: var(--text-0); }
   .citem :global(svg) { width: 12px; height: 12px; color: var(--lavender); flex-shrink: 0; }
   .ct { flex: 1; font-size: var(--fs-md); }
   .cd { font-size: 10.5px; color: var(--text-3); white-space: nowrap; }
   .empty { padding: 16px 10px; font-size: var(--fs-sm); }
   .thread { flex: 1; min-width: 0; display: flex; flex-direction: column; min-height: 0; }
-  header { display: flex; align-items: center; gap: 10px; height: 56px; padding: 0 16px 0 24px; border-bottom: 1px solid var(--line-0); }
+  header { display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 10px 0 8px; border-bottom: 1px solid var(--line-0); }
   .title { font-weight: 600; font-size: var(--fs-lg); min-width: 0; }
   .spacer { flex: 1; }
-  .msel { width: 280px; }
+  .msel { width: min(260px, 42%); }
   .mstate { display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 10px; border-radius: var(--r-full); border: 1px solid var(--line-1); background: var(--bg-2); color: var(--text-2); font-size: var(--fs-xs); cursor: pointer; white-space: nowrap; }
   .mstate :global(svg) { width: 12px; height: 12px; }
   .mstate.ok { color: var(--ok); border-color: rgba(95, 211, 155, 0.25); }
   .mstate .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 6px var(--ok); }
   .scroll { flex: 1; overflow-y: auto; min-height: 0; }
-  .inner { max-width: 860px; margin: 0 auto; padding: 28px 28px 20px; display: flex; flex-direction: column; gap: 14px; }
+  .inner { max-width: 860px; margin: 0 auto; padding: 20px 18px 16px; display: flex; flex-direction: column; gap: 14px; }
   .status { display: flex; gap: 8px; align-items: center; color: var(--text-2); font-size: var(--fs-sm); padding-left: 40px; }
-  .composer-wrap { padding: 0 28px 20px; }
+  .composer-wrap { padding: 0 14px 14px; }
   .composer {
     max-width: 860px;
     margin: 0 auto;
@@ -514,14 +557,14 @@
     box-shadow: var(--shadow-2);
     transition: border-color var(--t-1), box-shadow var(--t-2);
   }
-  .composer:focus-within { border-color: var(--select-line); box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.1), var(--shadow-2); }
+  .composer:focus-within { border-color: var(--select-line); box-shadow: 0 0 0 4px rgba(var(--accent-rgb), 0.1), var(--shadow-2); }
   .composer :global(textarea) { background: transparent; border: 0; box-shadow: none !important; font-size: 14.5px; padding: 8px 6px; }
   .crow { display: flex; align-items: center; gap: 8px; padding: 0 2px; }
   .attach { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 10px; color: var(--text-2); cursor: pointer; }
-  .attach:hover { background: rgba(255, 255, 255, 0.06); color: var(--text-0); }
+  .attach:hover { background: rgba(var(--fg-rgb), 0.06); color: var(--text-0); }
   .attach :global(svg) { width: 17px; height: 17px; }
   .small { font-size: var(--fs-xs); }
-  .send { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 12px; border: 0; background: linear-gradient(180deg, #9a6cff, #7c4ff0); color: white; cursor: pointer; transition: transform var(--t-1), opacity var(--t-1); box-shadow: 0 4px 14px rgba(124, 58, 237, 0.35); }
+  .send { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 12px; border: 0; background: var(--accent); color: var(--text-inv); cursor: pointer; transition: transform var(--t-1), opacity var(--t-1); box-shadow: var(--shadow-1); }
   .send:hover:not(:disabled) { transform: translateY(-1px); }
   .send:disabled { opacity: 0.35; cursor: default; box-shadow: none; }
   .send :global(svg) { width: 17px; height: 17px; }

@@ -72,7 +72,7 @@
     text-align: left;
     cursor: pointer;
   }
-  button:hover:not(:disabled) { background: rgba(255, 255, 255, 0.07); color: var(--text-0); }
+  button:hover:not(:disabled) { background: rgba(var(--fg-rgb), 0.07); color: var(--text-0); }
   button:disabled { opacity: 0.4; cursor: default; }
   button :global(svg), .ph { width: 15px; height: 15px; color: var(--text-2); flex-shrink: 0; }
   .danger { color: var(--err); }

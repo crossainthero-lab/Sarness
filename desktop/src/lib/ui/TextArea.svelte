@@ -41,7 +41,7 @@
     transition: border-color var(--t-1) var(--ease), box-shadow var(--t-2) var(--ease);
   }
   .ta:hover { border-color: var(--line-2); }
-  .ta:focus { border-color: var(--select-line); box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.14); }
+  .ta:focus { border-color: var(--select-line); box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.14); }
   .ta::placeholder { color: var(--text-3); }
   .mono { font-family: var(--font-mono); font-size: var(--fs-sm); }
 </style>

@@ -40,5 +40,5 @@
     background: var(--line-1);
     transition: background var(--t-1), box-shadow var(--t-1);
   }
-  .split:hover::after, .dragging::after { background: var(--accent-hi); box-shadow: 0 0 10px rgba(167, 139, 250, 0.6); }
+  .split:hover::after, .dragging::after { background: var(--accent-hi); box-shadow: 0 0 10px rgba(var(--accent-rgb), 0.6); }
 </style>

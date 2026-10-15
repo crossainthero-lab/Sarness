@@ -1,6 +1,6 @@
 // Persisted UI preferences (per desktop). Engine-side data never lives here.
 
-export type View = 'workspace' | 'images' | 'videos' | 'chat' | 'library' | 'models' | 'settings';
+export type View = 'workspace' | 'system' | 'library' | 'models' | 'settings';
 
 interface Prefs {
   view: View;
@@ -14,6 +14,7 @@ interface Prefs {
   folderId: string | null;
   chatShowReasoning: boolean;
   reduceMotion: boolean;
+  theme: 'light' | 'dark' | 'system';
   lastChatModel: string | null;
 }
 
@@ -31,13 +32,19 @@ const defaults: Prefs = {
   folderId: null,
   chatShowReasoning: false,
   reduceMotion: false,
+  theme: 'light',
   lastChatModel: null,
 };
 
 function load(): Prefs {
   try {
     const raw = localStorage.getItem(KEY);
-    if (raw) return { ...defaults, ...JSON.parse(raw) };
+    if (raw) {
+      const v = { ...defaults, ...JSON.parse(raw) } as Prefs;
+      if (!['workspace', 'system', 'library', 'models', 'settings'].includes(v.view)) v.view = 'workspace';
+      if (!['light', 'dark', 'system'].includes(v.theme)) v.theme = 'light';
+      return v;
+    }
   } catch {
     /* ignore */
   }

@@ -14,6 +14,7 @@
 
   interface Props {
     kind: 'image' | 'video';
+    paneId: string;
     title: string;
     mode: 'simple' | 'advanced';
     history: History;
@@ -27,10 +28,15 @@
     onvary?: (g: Generation, strength: number) => void;
     onedit: (g: Generation) => void;
   }
-  let { kind, title, mode, history, active, controls, advanced, empty, onmode, onnew, onrerun, onvary, onedit }: Props = $props();
+  let { kind, paneId, title, mode, history, active, controls, advanced, empty, onmode, onnew, onrerun, onvary, onedit }: Props = $props();
   let panel = $state(372);
 
-  const mine = $derived(activeJobs(kind));
+  // Only this pane's own jobs: other panes' work shows in their panes.
+  const mine = $derived(activeJobs(kind).filter((j) => history.state.follow.has(j.id)));
+  let rootEl: HTMLDivElement | undefined = $state();
+  let width = $state(900);
+  const narrow = $derived(width < 760);
+  let controlsOpen = $state(true);
   const running: Job | null = $derived(mine.find((j) => j.status === 'running') ?? mine[0] ?? null);
   const queued = $derived(Math.max(0, mine.length - (running ? 1 : 0)));
   const current = $derived(history.current);
@@ -41,7 +47,7 @@
   });
 
   function keys(e: KeyboardEvent) {
-    if (!active || mode !== 'simple') return;
+    if (!active || mode !== 'simple' || !rootEl?.matches(':focus-within')) return;
     if ((e.target as HTMLElement)?.closest('input, textarea, [contenteditable], select')) return;
     if (e.key === 'ArrowLeft') { history.prev(); e.preventDefault(); }
     else if (e.key === 'ArrowRight') { history.next(); e.preventDefault(); }
@@ -50,21 +56,27 @@
 
 <svelte:window onkeydown={keys} />
 
-<div class="studio">
+<div class="studio" bind:clientWidth={width} bind:this={rootEl}>
   <header>
-    <h1>{title}</h1>
     <span class="dest" title="New generations are saved here">{dest}</span>
     <div class="spacer"></div>
     {#if mode === 'simple'}
-      <Button size="sm" variant="ghost" onclick={onnew}><Plus />New generation</Button>
+      {#if narrow}
+        <Button size="sm" variant="ghost" onclick={() => (controlsOpen = !controlsOpen)}><SlidersHorizontal />{controlsOpen ? 'Hide settings' : 'Settings'}</Button>
+      {/if}
+      <Button size="sm" variant="ghost" onclick={onnew}><Plus />New</Button>
     {/if}
     <Segmented value={mode} items={[{ value: 'simple', label: 'Simple', icon: SlidersHorizontal }, { value: 'advanced', label: 'Advanced', icon: WorkflowIcon }]} onchange={(m) => onmode(m)} />
   </header>
 
   {#if mode === 'simple'}
-    <div class="body">
-      <aside class="controls" style="width:{panel}px">{@render controls()}</aside>
-      <Splitter id="{kind}-controls" bind:size={panel} min={300} max={560} />
+    <div class="body" class:stack={narrow}>
+      {#if !narrow}
+        <aside class="controls" style="width:{panel}px">{@render controls()}</aside>
+        <Splitter id="{paneId}-controls" bind:size={panel} min={300} max={560} />
+      {:else if controlsOpen}
+        <aside class="controls drawer">{@render controls()}</aside>
+      {/if}
       <section class="out">
         <OutputViewer {current} {running} {queued} {kind}
           canPrev={history.state.index < history.state.items.length - 1} canNext={history.state.index > 0}
@@ -82,11 +94,12 @@
 
 <style>
   .studio { display: flex; flex-direction: column; height: 100%; min-height: 0; }
-  header { display: flex; align-items: center; gap: 12px; height: 56px; padding: 0 16px 0 22px; border-bottom: 1px solid var(--line-0); flex-shrink: 0; }
-  h1 { font-size: var(--fs-xl); }
-  .dest { font-size: var(--fs-xs); color: var(--text-3); padding: 3px 8px; border-radius: var(--r-full); background: rgba(255, 255, 255, 0.04); max-width: 360px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  header { display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 10px 0 14px; border-bottom: 1px solid var(--line-0); flex-shrink: 0; }
+  .dest { font-size: var(--fs-xs); color: var(--text-3); padding: 3px 8px; border-radius: var(--r-full); background: rgba(var(--fg-rgb), 0.04); max-width: 360px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .spacer { flex: 1; }
   .body { flex: 1; display: flex; min-height: 0; }
+  .body.stack { flex-direction: column; }
+  .controls.drawer { width: auto; max-height: 52%; border-bottom: 1px solid var(--line-1); }
   .controls { flex-shrink: 0; overflow-y: auto; overflow-x: hidden; background: var(--bg-1); }
   .out { flex: 1; min-width: 0; display: flex; flex-direction: column; }
   .adv { flex: 1; min-height: 0; display: flex; }

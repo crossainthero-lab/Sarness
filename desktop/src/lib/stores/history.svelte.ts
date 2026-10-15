@@ -4,22 +4,46 @@ import type { Generation, Page } from '../api/types';
 import { onEvent } from './connection.svelte';
 import { onGeneration } from './jobs.svelte';
 
-export function createHistory(kind: 'image' | 'video') {
+const MAX_FOLLOW = 40;
+
+export function createHistory(kind: 'image' | 'video', paneId: string) {
+  const storeKey = `sarness.pane.${paneId}.${kind}.jobs`;
+  let saved: string[] = [];
+  try {
+    saved = JSON.parse(localStorage.getItem(storeKey) ?? '[]');
+  } catch {
+    /* ignore */
+  }
   const h = $state({
     items: [] as Generation[],
     index: 0,
     loading: false,
     cursor: null as number | null,
     loaded: false,
-    follow: new Set<string>(), // job ids submitted from this studio
+    follow: new Set<string>(saved), // job ids submitted from this pane (persisted)
   });
 
+  function track(jobId: string) {
+    h.follow.add(jobId);
+    try {
+      localStorage.setItem(storeKey, JSON.stringify([...h.follow].slice(-MAX_FOLLOW)));
+    } catch {
+      /* ignore */
+    }
+  }
+
+  /** A pane's history is its own session: generations of the jobs it submitted. */
   async function load() {
     h.loading = true;
     try {
-      const page = await api.get<Page<Generation>>(`/v1/generations${qs({ type: kind, limit: 60 })}`);
-      h.items = page.items;
-      h.cursor = page.next_cursor;
+      const ids = [...h.follow].slice(-MAX_FOLLOW);
+      const pages = await Promise.all(
+        ids.map((job_id) => api.get<Page<Generation>>(`/v1/generations${qs({ type: kind, job_id, limit: 20 })}`).catch(() => null)),
+      );
+      const all = pages.flatMap((p) => p?.items ?? []);
+      const seen = new Set<string>();
+      h.items = all.filter((g) => !seen.has(g.id) && seen.add(g.id)).sort((a, b) => b.created_at - a.created_at);
+      h.cursor = null;
       h.index = 0;
       h.loaded = true;
     } finally {
@@ -40,7 +64,7 @@ export function createHistory(kind: 'image' | 'video') {
   }
 
   onGeneration((g) => {
-    if (g.type !== kind || h.items.some((x) => x.id === g.id)) return;
+    if (g.type !== kind || !g.job_id || !h.follow.has(g.job_id) || h.items.some((x) => x.id === g.id)) return;
     const atHead = h.index === 0;
     h.items.unshift(g);
     if (!atHead) h.index += 1;
@@ -63,6 +87,7 @@ export function createHistory(kind: 'image' | 'video') {
 
   return {
     state: h,
+    track,
     load,
     more,
     get current(): Generation | null {

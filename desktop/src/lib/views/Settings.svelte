@@ -1,4 +1,8 @@
 <script lang="ts">
+  import { Palette } from '@lucide/svelte';
+  import Segmented from '../ui/Segmented.svelte';
+  import { prefs, persistPrefs } from '../stores/prefs.svelte';
+  import { applyTheme } from '../stores/theme';
   import { Cable, FolderPlus, HardDrive, Info, KeyRound, Pencil, Plug, Plus, RefreshCw, Server, Sliders, Trash2, Unplug } from '@lucide/svelte';
   import { invoke } from '@tauri-apps/api/core';
   import { api } from '../api/client';
@@ -19,8 +23,8 @@
   import { confirmDialog } from '../ui/dialogs.svelte';
   import { bytes } from '../util/format';
 
-  type Section = 'servers' | 'engine' | 'endpoints' | 'desktop' | 'about';
-  let section = $state<Section>('servers');
+  type Section = 'appearance' | 'servers' | 'engine' | 'endpoints' | 'desktop' | 'about';
+  let section = $state<Section>('appearance');
   let editing = $state<Profile | null | 'new'>(null);
   let s = $state<EngineSettings | null>(null);
   let hfToken = $state('');
@@ -101,7 +105,14 @@
     ep = { name: '', base_url: '', api_key: '', vision: false };
   }
 
+  function setTheme(t: 'light' | 'dark' | 'system') {
+    prefs.theme = t;
+    persistPrefs();
+    applyTheme(t);
+  }
+
   const nav: { id: Section; label: string; icon: any }[] = [
+    { id: 'appearance', label: 'Appearance', icon: Palette },
     { id: 'servers', label: 'Servers', icon: Server },
     { id: 'engine', label: 'Engine & resources', icon: Sliders },
     { id: 'endpoints', label: 'Remote chat endpoints', icon: Cable },
@@ -119,7 +130,14 @@
   </nav>
 
   <div class="content">
-    {#if section === 'servers'}
+    {#if section === 'appearance'}
+      <div class="head"><h2>Appearance</h2></div>
+      <div class="group">
+        <h3>Theme</h3>
+        <p class="muted small">Light is the default. System follows your operating system.</p>
+        <Segmented value={prefs.theme} onchange={setTheme} items={[{ value: 'light', label: 'Light' }, { value: 'dark', label: 'Dark' }, { value: 'system', label: 'System' }]} />
+      </div>
+    {:else if section === 'servers'}
       <div class="head"><h2>Servers</h2><Button variant="primary" size="sm" onclick={() => (editing = 'new')}><Plus />Add server</Button></div>
       <p class="muted lead">Sarness connects to a Sarness Engine over your LAN, Tailscale or an SSH tunnel. Tokens live in your system keyring.</p>
       <div class="list">
@@ -256,7 +274,7 @@
       <div class="group">
         <p><strong>Sarness</strong> (Sarja Harness) — self-hosted AI workstation.</p>
         <p class="muted small">Desktop {app?.version ?? '0.1.0'} · Engine {conn.system?.engine.version ?? '—'} · API {conn.system?.engine.api_version ?? '—'}</p>
-        <p class="muted small">Keyboard: Ctrl+1…7 switch sections · Ctrl+B sidebar · Ctrl+Enter generate · ←/→ browse results · in the workflow editor: Space add node, Ctrl+Z/Y undo/redo, Ctrl+C/V/D copy/paste/duplicate, Ctrl+G group, double-click an edge to add a reroute.</p>
+        <p class="muted small">Keyboard: Alt+1…5 switch sections · Ctrl+1…4 focus session · Ctrl+Shift+M maximise or restore the focused session · Ctrl+B sidebar · Ctrl+Enter generate · ←/→ browse results · in the workflow editor: Space add node, Ctrl+Z/Y undo/redo, Ctrl+C/V/D copy/paste/duplicate, Ctrl+G group, double-click an edge to add a reroute.</p>
         {#if app}<p class="faint small mono">Config: {app.config_dir}</p>{/if}
       </div>
     {/if}
@@ -274,7 +292,7 @@
   nav { width: 240px; flex-shrink: 0; padding: 0 10px; background: var(--bg-1); display: flex; flex-direction: column; gap: 2px; }
   nav h1 { font-size: var(--fs-xl); height: 56px; display: flex; align-items: center; padding: 0 8px; }
   nav button { display: flex; align-items: center; gap: 10px; height: 34px; padding: 0 10px; border: 0; border-radius: var(--r-md); background: none; color: var(--text-1); cursor: pointer; text-align: left; }
-  nav button:hover { background: rgba(255, 255, 255, 0.045); }
+  nav button:hover { background: rgba(var(--fg-rgb), 0.045); }
   nav button.on { background: var(--select-bg); color: var(--text-0); }
   nav button :global(svg) { width: 16px; height: 16px; color: var(--text-3); }
   nav button.on :global(svg) { color: var(--lavender); }

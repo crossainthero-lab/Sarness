@@ -7,9 +7,9 @@
   import DialogHost from './lib/ui/DialogHost.svelte';
   import Spinner from './lib/ui/Spinner.svelte';
   import Workspace from './lib/views/Workspace.svelte';
-  import Images from './lib/views/Images.svelte';
-  import Videos from './lib/views/Videos.svelte';
-  import Chat from './lib/views/Chat.svelte';
+  import Tiler from './lib/workspace/Tiler.svelte';
+  import { applyTheme } from './lib/stores/theme';
+  import { focusPane, toggleMaximize, ws } from './lib/stores/panes.svelte';
   import Library from './lib/views/Library.svelte';
   import Models from './lib/views/Models.svelte';
   import Settings from './lib/views/Settings.svelte';
@@ -19,7 +19,7 @@
   import { loadModels, wireModelEvents } from './lib/stores/models.svelte';
   import { loadProjects, wireProjectEvents } from './lib/stores/projects.svelte';
 
-  const order: View[] = ['workspace', 'images', 'videos', 'chat', 'library', 'models', 'settings'];
+  const order: View[] = ['workspace', 'library', 'models', 'system', 'settings'];
   let visited = $state<Record<string, boolean>>({ [prefs.view]: true });
   let loadedFor = '';
 
@@ -37,6 +37,7 @@
   });
 
   onMount(() => {
+    applyTheme(prefs.theme);
     wireJobEvents();
     wireModelEvents();
     wireProjectEvents();
@@ -44,11 +45,25 @@
   });
 
   function keys(e: KeyboardEvent) {
-    if (!(e.ctrlKey || e.metaKey)) return;
     const n = Number(e.key);
-    if (n >= 1 && n <= order.length && !e.shiftKey && !e.altKey) {
+    if (e.altKey && !e.ctrlKey && !e.metaKey && n >= 1 && n <= order.length) {
       prefs.view = order[n - 1];
       persistPrefs();
+      e.preventDefault();
+      return;
+    }
+    if (!(e.ctrlKey || e.metaKey)) return;
+    if (n >= 1 && n <= 4 && !e.shiftKey && !e.altKey) {
+      const p = ws.panes[n - 1];
+      if (p) {
+        prefs.view = 'workspace';
+        ws.minimized = ws.minimized.filter((i) => i !== p.id);
+        if (ws.maximized) ws.maximized = p.id;
+        focusPane(p.id);
+        e.preventDefault();
+      }
+    } else if (e.key.toLowerCase() === 'm' && e.shiftKey && ws.focus) {
+      toggleMaximize(ws.focus);
       e.preventDefault();
     } else if (e.key.toLowerCase() === 'b' && !e.shiftKey) {
       prefs.sidebarCollapsed = !prefs.sidebarCollapsed;
@@ -68,10 +83,8 @@
   <div class="shell" class:collapsed={prefs.sidebarCollapsed}>
     <Sidebar />
     <main>
-      {#if visited.workspace}<section class="view" class:hidden={prefs.view !== 'workspace'}><Workspace /></section>{/if}
-      {#if visited.images}<section class="view" class:hidden={prefs.view !== 'images'}><Images active={prefs.view === 'images'} /></section>{/if}
-      {#if visited.videos}<section class="view" class:hidden={prefs.view !== 'videos'}><Videos active={prefs.view === 'videos'} /></section>{/if}
-      {#if visited.chat}<section class="view" class:hidden={prefs.view !== 'chat'}><Chat active={prefs.view === 'chat'} /></section>{/if}
+      <section class="view" class:hidden={prefs.view !== 'workspace'}><Tiler /></section>
+      {#if visited.system}<section class="view" class:hidden={prefs.view !== 'system'}><Workspace /></section>{/if}
       {#if visited.library}<section class="view" class:hidden={prefs.view !== 'library'}><Library active={prefs.view === 'library'} /></section>{/if}
       {#if visited.models}<section class="view" class:hidden={prefs.view !== 'models'}><Models active={prefs.view === 'models'} /></section>{/if}
       {#if visited.settings}<section class="view" class:hidden={prefs.view !== 'settings'}><Settings /></section>{/if}

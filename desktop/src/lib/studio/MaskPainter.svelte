@@ -55,8 +55,8 @@
     const ctx = canvas!.getContext('2d')!;
     const scale = canvas!.width / canvas!.getBoundingClientRect().width;
     ctx.globalCompositeOperation = tool === 'brush' ? 'source-over' : 'destination-out';
-    ctx.strokeStyle = 'rgb(167,139,250)';
-    ctx.fillStyle = 'rgb(167,139,250)';
+    ctx.strokeStyle = 'rgb(128,128,128)';
+    ctx.fillStyle = 'rgb(128,128,128)';
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
     ctx.lineWidth = size * scale;
@@ -131,7 +131,7 @@
 <style>
   .tools { display: flex; align-items: center; gap: 16px; margin-bottom: 12px; }
   .sz { width: 220px; }
-  .paint { position: relative; display: grid; place-items: center; max-height: 62vh; background: #050507; border-radius: var(--r-md); overflow: hidden; }
+  .paint { position: relative; display: grid; place-items: center; max-height: 62vh; background: var(--bg-0); border-radius: var(--r-md); overflow: hidden; }
   .paint img { max-width: 100%; max-height: 62vh; display: block; user-select: none; -webkit-user-drag: none; }
   canvas { position: absolute; width: 100%; height: 100%; max-width: 100%; opacity: 0.6; cursor: crosshair; touch-action: none; }
   .paint img, canvas { grid-area: 1 / 1; }

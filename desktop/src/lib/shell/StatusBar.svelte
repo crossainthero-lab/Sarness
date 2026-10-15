@@ -40,14 +40,14 @@
   <div class="spacer"></div>
 
   {#if llm && llm.state !== 'stopped'}
-    <button class="seg link" onclick={() => { prefs.view = 'chat'; persistPrefs(); }} use:tooltip={llm.error ?? `Chat model ${llm.state}`}>
+    <button class="seg link" onclick={() => { prefs.view = 'workspace'; persistPrefs(); }} use:tooltip={llm.error ?? `Chat model ${llm.state}`}>
       <MessageSquareText />
       <span class="truncate" style="max-width:220px">{llm.model_name ?? llm.model_id}</span>
       <span class="pill {llm.state}">{llm.state === 'ready' ? (llm.active_streams ? 'generating' : 'loaded') : llm.state}</span>
     </button>
   {/if}
 
-  <button class="seg link" onclick={() => { prefs.view = 'workspace'; persistPrefs(); }} use:tooltip={'Generation queue'}>
+  <button class="seg link" onclick={() => { prefs.view = 'system'; persistPrefs(); }} use:tooltip={'Generation queue and server dashboard'}>
     <ListTodo />
     {#if running || queued}
       <span>{running} running{queued ? ` · ${queued} queued` : ''}</span>
@@ -87,16 +87,16 @@
     min-width: 0;
   }
   button.seg { cursor: pointer; }
-  button.seg:hover { background: rgba(255, 255, 255, 0.05); color: var(--text-0); }
+  button.seg:hover { background: rgba(var(--fg-rgb), 0.05); color: var(--text-0); }
   .seg :global(svg) { width: 13px; height: 13px; flex-shrink: 0; }
   .led { width: 7px; height: 7px; border-radius: 50%; background: var(--text-3); flex-shrink: 0; }
   .online .led { background: var(--ok); box-shadow: 0 0 8px rgba(95, 211, 155, 0.7); }
   .offline .led { background: var(--warn); box-shadow: 0 0 8px rgba(242, 182, 90, 0.6); }
   .connecting .led { background: var(--lavender); animation: pulse-ring 1.4s infinite; }
-  .bar { width: 64px; height: 4px; border-radius: 3px; background: rgba(255, 255, 255, 0.08); overflow: hidden; }
+  .bar { width: 64px; height: 4px; border-radius: 3px; background: rgba(var(--fg-rgb), 0.08); overflow: hidden; }
   .bar span { display: block; height: 100%; background: var(--accent-hi); transform-origin: left; transition: transform 600ms var(--ease-out); }
   .bar span.hot { background: var(--warn); }
-  .pill { padding: 0 6px; border-radius: 8px; background: rgba(255, 255, 255, 0.07); font-weight: 600; }
+  .pill { padding: 0 6px; border-radius: 8px; background: rgba(var(--fg-rgb), 0.07); font-weight: 600; }
   .pill.ready { color: var(--ok); }
   .pill.loading { color: var(--lavender); }
   .pill.error { color: var(--err); }

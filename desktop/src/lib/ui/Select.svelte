@@ -155,13 +155,13 @@
     text-align: left;
     cursor: pointer;
   }
-  .opt.active { background: rgba(255, 255, 255, 0.06); color: var(--text-0); }
+  .opt.active { background: rgba(var(--fg-rgb), 0.06); color: var(--text-0); }
   .opt.sel { color: var(--lavender); }
   .opt:disabled { opacity: 0.4; cursor: default; }
   .opt :global(svg) { width: 14px; height: 14px; color: var(--lavender); flex-shrink: 0; }
   .olabel { display: flex; flex-direction: column; flex: 1; min-width: 0; }
   .ohint { font-size: var(--fs-xs); color: var(--text-3); }
-  .mini-badge { font-size: 10px; padding: 1px 6px; border-radius: var(--r-full); background: rgba(255,255,255,0.07); color: var(--text-2); white-space: nowrap; }
+  .mini-badge { font-size: 10px; padding: 1px 6px; border-radius: var(--r-full); background: rgba(var(--fg-rgb),0.07); color: var(--text-2); white-space: nowrap; }
   .none { padding: 10px; color: var(--text-3); font-size: var(--fs-sm); }
   .foot { border-top: 1px solid var(--line-1); margin-top: 4px; padding-top: 4px; }
 </style>

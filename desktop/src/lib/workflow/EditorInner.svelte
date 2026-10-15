@@ -540,9 +540,9 @@
         onedgeclick={({ edge, event }) => event.detail === 2 && insertReroute(edge.id, event.clientX, event.clientY)}
         onpaneclick={({ event }) => event.detail === 2 && openPalette(event.clientX, event.clientY)}
         onselectionstart={() => (menu.open = false)}>
-        <Background variant={BackgroundVariant.Dots} gap={22} size={1.2} bgColor="#09090b" patternColor="rgba(255,255,255,0.09)" />
+        <Background variant={BackgroundVariant.Dots} gap={22} size={1.2} bgColor="var(--bg-0)" patternColor="rgba(var(--fg-rgb),0.09)" />
         <Controls showLock={false} position="bottom-left" />
-        <MiniMap position="bottom-right" pannable zoomable bgColor="#0d0d10" maskColor="rgba(8,8,10,0.7)" nodeColor="#2a2833" nodeStrokeColor="#3d3a4a" />
+        <MiniMap position="bottom-right" pannable zoomable bgColor="var(--bg-1)" maskColor="var(--scrim)" nodeColor="var(--bg-5)" nodeStrokeColor="var(--line-2)" />
 
         <Panel position="top-left">
           <div class="toolbar glass">
@@ -658,12 +658,12 @@
   .sopen .truncate { flex: 1; }
 
   /* Svelte Flow theming — Sarness Obsidian */
-  .wf-canvas :global(.svelte-flow) { --xy-background-color: #09090b; --xy-edge-stroke-width: 2; --xy-connectionline-stroke-default: var(--accent-hi); --xy-connectionline-stroke-width: 2; --xy-selection-background-color: rgba(167, 139, 250, 0.08); --xy-selection-border: 1px solid rgba(201, 189, 253, 0.4); }
+  .wf-canvas :global(.svelte-flow) { --xy-background-color: var(--bg-0); --xy-edge-stroke-width: 2; --xy-connectionline-stroke-default: var(--accent-hi); --xy-connectionline-stroke-width: 2; --xy-selection-background-color: rgba(var(--accent-rgb), 0.08); --xy-selection-border: 1px solid rgba(var(--accent-rgb), 0.4); }
   .wf-canvas :global(.svelte-flow__node) { border-radius: 12px; }
   .wf-canvas :global(.svelte-flow__node-sarness), .wf-canvas :global(.svelte-flow__node-reroute) { background: none; border: 0; padding: 0; box-shadow: none; width: auto; }
   .wf-canvas :global(.svelte-flow__node-group) { background: none; border: 0; padding: 0; }
   .wf-canvas :global(.svelte-flow__edge-path) { stroke-width: 2.2; opacity: 0.85; }
-  .wf-canvas :global(.svelte-flow__edge.selected .svelte-flow__edge-path) { stroke-width: 3.2; opacity: 1; filter: drop-shadow(0 0 4px rgba(167, 139, 250, 0.7)); }
+  .wf-canvas :global(.svelte-flow__edge.selected .svelte-flow__edge-path) { stroke-width: 3.2; opacity: 1; filter: drop-shadow(0 0 4px rgba(var(--accent-rgb), 0.7)); }
   .wf-canvas :global(.svelte-flow__controls) { border-radius: var(--r-md); overflow: hidden; box-shadow: var(--shadow-2); border: 1px solid var(--line-1); }
   .wf-canvas :global(.svelte-flow__controls-button) { background: var(--bg-3); border-bottom: 1px solid var(--line-0); color: var(--text-1); fill: var(--text-1); }
   .wf-canvas :global(.svelte-flow__controls-button:hover) { background: var(--bg-5); }

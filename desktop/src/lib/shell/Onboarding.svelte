@@ -39,10 +39,10 @@
     align-content: center;
     justify-content: center;
     padding: 48px;
-    background: radial-gradient(80% 60% at 15% 10%, rgba(124, 58, 237, 0.14), transparent 60%), var(--bg-0);
+    background: radial-gradient(80% 60% at 15% 10%, rgba(var(--accent-rgb), 0.14), transparent 60%), var(--bg-0);
   }
   .intro { display: flex; flex-direction: column; gap: 16px; align-self: center; animation: rise-in 400ms var(--ease-out); }
-  .intro img { filter: drop-shadow(0 10px 30px rgba(124, 58, 237, 0.45)); }
+  .intro img { filter: drop-shadow(0 10px 30px rgba(var(--accent-rgb), 0.45)); }
   h1 { font-size: var(--fs-3xl); }
   .lead { color: var(--text-1); font-size: var(--fs-lg); line-height: 1.6; }
   .feats { list-style: none; padding: 0; margin: 4px 0; display: flex; flex-direction: column; gap: 10px; }

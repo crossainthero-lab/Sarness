@@ -399,7 +399,7 @@
   .sh h1 { font-size: var(--fs-xl); }
   .group { display: flex; flex-direction: column; gap: 1px; }
   .group button { display: flex; align-items: center; gap: 9px; width: 100%; height: 32px; padding: 0 9px; border: 0; border-radius: var(--r-sm); background: none; color: var(--text-1); cursor: pointer; text-align: left; font-size: var(--fs-md); transition: background var(--t-1); }
-  .group button:hover { background: rgba(255, 255, 255, 0.045); color: var(--text-0); }
+  .group button:hover { background: rgba(var(--fg-rgb), 0.045); color: var(--text-0); }
   .group button.on { background: var(--select-bg); color: var(--text-0); }
   .group button :global(svg) { width: 15px; height: 15px; color: var(--text-3); flex-shrink: 0; }
   .group button.on :global(svg) { color: var(--lavender); }

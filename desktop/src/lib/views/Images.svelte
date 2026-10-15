@@ -7,6 +7,7 @@
   import { activeJobs, submitJob } from '../stores/jobs.svelte';
   import { byCategory, modelById, models } from '../stores/models.svelte';
   import { persisted, prefs, persistPrefs, savePersisted } from '../stores/prefs.svelte';
+  import { paneKey } from '../stores/panes.svelte';
   import { destination } from '../stores/projects.svelte';
   import { toast, toastError } from '../stores/toast.svelte';
   import StudioShell from '../studio/StudioShell.svelte';
@@ -28,9 +29,12 @@
   import TextInput from '../ui/TextInput.svelte';
   import Toggle from '../ui/Toggle.svelte';
 
-  let { active }: { active: boolean } = $props();
+  let { active, paneId }: { active: boolean; paneId: string } = $props();
+  const K = (n: string) => paneKey(paneId, n);
+  const modeState = persisted(K('image.mode'), { mode: 'simple' as 'simple' | 'advanced' });
+  $effect(() => savePersisted(K('image.mode'), $state.snapshot(modeState)));
 
-  const p = persisted('image.simple', {
+  const p = persisted(K('image.simple'), {
     model: null as string | null,
     prompt: '',
     negative_prompt: '',
@@ -54,11 +58,11 @@
     format: 'png',
     clip_skip: 0,
   });
-  const adv = persisted('image.workflow', { graph: null as Workflow | null });
-  $effect(() => savePersisted('image.simple', $state.snapshot(p)));
-  $effect(() => savePersisted('image.workflow', $state.snapshot(adv)));
+  const adv = persisted(K('image.workflow'), { graph: null as Workflow | null });
+  $effect(() => savePersisted(K('image.simple'), $state.snapshot(p)));
+  $effect(() => savePersisted(K('image.workflow'), $state.snapshot(adv)));
 
-  const history = createHistory('image');
+  const history = createHistory('image', paneId);
   let promptEl: HTMLTextAreaElement | null = $state(null);
   let submitting = $state(false);
   let maskOpen = $state(false);
@@ -128,7 +132,7 @@
     submitting = true;
     try {
       const j = await job;
-      history.state.follow.add(j.id);
+      history.track(j.id);
     } catch (e: any) {
       toastError(e, 'Could not start generation');
     } finally {
@@ -208,7 +212,7 @@
   }
 
   async function setMode(m: 'simple' | 'advanced', keepGraph = false) {
-    if (m === prefs.imageMode) return;
+    if (m === modeState.mode) return;
     if (m === 'advanced') {
       if (!keepGraph) adv.graph = await switchToAdvanced('image', adv.graph, simpleParams({ seed: p.random_seed ? -1 : p.seed }));
     } else {
@@ -216,7 +220,7 @@
       if (s === false) return;
       if (s) applySimple(s);
     }
-    prefs.imageMode = m;
+    modeState.mode = m;
     persistPrefs();
   }
 
@@ -246,7 +250,7 @@
   async function runWorkflow(graph: Workflow) {
     try {
       const j = await submitJob({ kind: 'image', workflow: graph, ...destination() });
-      history.state.follow.add(j.id);
+      history.track(j.id);
       return j;
     } catch (e) {
       toastError(e, 'Workflow could not start');
@@ -262,7 +266,7 @@
   }
 </script>
 
-<StudioShell kind="image" title="Images" mode={prefs.imageMode} {history} {active}
+<StudioShell {paneId} kind="image" title="Images" mode={modeState.mode} {history} {active}
   onmode={(m) => setMode(m)} onnew={newGeneration} onrerun={rerun} onvary={caps.modes?.includes('img2img') !== false ? vary : undefined} onedit={edit}>
   {#snippet controls()}
     <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->

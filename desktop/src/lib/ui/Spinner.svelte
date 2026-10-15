@@ -8,7 +8,7 @@
   .spinner {
     display: inline-block;
     border-radius: 50%;
-    border: 2px solid rgba(255, 255, 255, 0.14);
+    border: 2px solid rgba(var(--fg-rgb), 0.14);
     border-top-color: var(--lavender);
     animation: spin 0.8s linear infinite;
     flex-shrink: 0;

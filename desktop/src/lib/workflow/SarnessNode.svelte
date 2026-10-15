@@ -21,7 +21,7 @@
   const mainParams = $derived(spec?.params.filter((p) => !p.advanced) ?? []);
   const advParams = $derived(spec?.params.filter((p) => p.advanced) ?? []);
   const catColor = $derived(
-    ({ Loaders: '#a78bfa', Sampling: '#c4b5fd', Prompt: '#fbbf24', Latent: '#fb923c', VAE: '#f87171', Image: '#60a5fa', Transform: '#60a5fa', Mask: '#94a3b8', Video: '#38bdf8', Upscale: '#2dd4bf', Output: '#5fd39b', Conditioning: '#c4b5fd', Control: '#818cf8', Schedulers: '#34d399' } as Record<string, string>)[spec?.category ?? ''] ?? '#8b8a96',
+    ({ Loaders: '#d4d4d4', Sampling: '#a3a3a3', Prompt: '#fbbf24', Latent: '#fb923c', VAE: '#f87171', Image: '#60a5fa', Transform: '#60a5fa', Mask: '#94a3b8', Video: '#38bdf8', Upscale: '#2dd4bf', Output: '#5fd39b', Conditioning: '#a3a3a3', Control: '#737373', Schedulers: '#34d399' } as Record<string, string>)[spec?.category ?? ''] ?? '#8b8a96',
   );
 </script>
 
@@ -112,7 +112,7 @@
     transition: border-color var(--t-1), box-shadow var(--t-2), opacity var(--t-2);
   }
   .node.selected { border-color: var(--select-line); box-shadow: 0 0 0 1px var(--select-line), 0 14px 40px rgba(0, 0, 0, 0.55); }
-  .node.running { border-color: var(--accent-hi); box-shadow: 0 0 0 1px rgba(167, 139, 250, 0.6), 0 0 28px rgba(139, 92, 246, 0.35); }
+  .node.running { border-color: var(--accent-hi); box-shadow: 0 0 0 1px rgba(var(--accent-rgb), 0.6), 0 0 28px rgba(var(--accent-rgb), 0.35); }
   .node.issue { border-color: rgba(244, 113, 116, 0.7); }
   .node.skipped { opacity: 0.45; }
   header {
@@ -155,7 +155,7 @@
   .in :global(.hdl) { left: -6px !important; --hx: -50%; }
   .out :global(.hdl) { right: -6px !important; --hx: 50%; }
   .prow :global(.ph) { left: -18px !important; top: 12px !important; --hx: -50%; }
-  .prog { height: 3px; margin: 0 12px 6px; border-radius: 3px; background: rgba(255, 255, 255, 0.07); overflow: hidden; }
+  .prog { height: 3px; margin: 0 12px 6px; border-radius: 3px; background: rgba(var(--fg-rgb), 0.07); overflow: hidden; }
   .prog span { display: block; height: 100%; background: linear-gradient(90deg, var(--accent-lo), var(--accent-hi)); transform-origin: left; transition: transform 200ms var(--ease-out); }
   .ptxt { padding: 0 12px 8px; font-size: 11px; color: var(--text-2); }
   .preview { display: block; width: calc(100% - 20px); margin: 0 10px 10px; border-radius: 8px; }

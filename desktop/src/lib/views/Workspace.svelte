@@ -8,6 +8,7 @@
   import { cancelJob, jobs, onGeneration, recentJobs, retryJob } from '../stores/jobs.svelte';
   import { models } from '../stores/models.svelte';
   import { prefs, persistPrefs, type View } from '../stores/prefs.svelte';
+  import { openConversation, openPane, type PaneKind } from '../stores/panes.svelte';
   import { createProject, projects, selectProject } from '../stores/projects.svelte';
   import Badge from '../ui/Badge.svelte';
   import Button from '../ui/Button.svelte';
@@ -35,7 +36,7 @@
 
   // Refresh slow-changing system info periodically while visible.
   $effect(() => {
-    if (prefs.view !== 'workspace') return;
+    if (prefs.view !== 'system') return;
     const t = setInterval(() => conn.state === 'online' && refreshSystem(), 20000);
     return () => clearInterval(t);
   });
@@ -43,6 +44,11 @@
   function go(v: View) {
     prefs.view = v;
     persistPrefs();
+  }
+
+  function open(kind: PaneKind) {
+    openPane(kind);
+    go('workspace');
   }
 
   const queue = $derived(recentJobs(14));
@@ -81,10 +87,10 @@
     </header>
 
     <div class="quick">
-      <button class="qa" onclick={() => go('images')}><span class="qi"><Image /></span><span><b>Create an image</b><small>Prompt, edit or inpaint</small></span></button>
-      <button class="qa" onclick={() => go('videos')}><span class="qi"><Clapperboard /></span><span><b>Generate a video</b><small>Text or image to video</small></span></button>
-      <button class="qa" onclick={() => go('chat')}><span class="qi"><MessagesSquare /></span><span><b>Start a chat</b><small>Local LLMs with streaming</small></span></button>
-      <button class="qa" onclick={() => { prefs.imageMode = 'advanced'; go('images'); }}><span class="qi"><Workflow /></span><span><b>Build a workflow</b><small>Node-based pipelines</small></span></button>
+      <button class="qa" onclick={() => open('image')}><span class="qi"><Image /></span><span><b>Create an image</b><small>Prompt, edit or inpaint</small></span></button>
+      <button class="qa" onclick={() => open('video')}><span class="qi"><Clapperboard /></span><span><b>Generate a video</b><small>Text or image to video</small></span></button>
+      <button class="qa" onclick={() => open('chat')}><span class="qi"><MessagesSquare /></span><span><b>Start a chat</b><small>Local LLMs with streaming</small></span></button>
+      <button class="qa" onclick={() => open('image')}><span class="qi"><Workflow /></span><span><b>Build a workflow</b><small>Switch an image session to Advanced</small></span></button>
     </div>
 
     {#if conn.system}
@@ -137,7 +143,7 @@
         {#if recent.length}
           <div class="recent">
             {#each recent as g (g.id)}
-              <button class="rthumb" onclick={() => go(g.type === 'video' ? 'videos' : 'images')} title={g.prompt ?? ''}>
+              <button class="rthumb" onclick={() => go('library')} title={g.prompt ?? ''}>
                 <img src={mediaUrl(g.thumb_url)} alt="" loading="lazy" />
                 {#if g.type === 'video'}<span class="pl"><Play /></span>{/if}
               </button>
@@ -147,10 +153,10 @@
           <Empty icon={Image} title="No generations yet" compact />
         {/if}
 
-        <div class="sh" style="margin-top:22px"><h2>Conversations</h2><Button size="sm" variant="ghost" onclick={() => go('chat')}>Open chat</Button></div>
+        <div class="sh" style="margin-top:22px"><h2>Conversations</h2><Button size="sm" variant="ghost" onclick={() => open('chat')}>Open chat</Button></div>
         <div class="convs">
           {#each convs as c (c.id)}
-            <button class="conv" onclick={() => go('chat')}><MessagesSquare /><span class="truncate">{c.title}</span><span class="faint">{ago(c.updated_at)}</span></button>
+            <button class="conv" onclick={() => { openConversation(c.id); go('workspace'); }}><MessagesSquare /><span class="truncate">{c.title}</span><span class="faint">{ago(c.updated_at)}</span></button>
           {/each}
           {#if !convs.length}<p class="faint small">No conversations yet.</p>{/if}
         </div>
@@ -170,7 +176,7 @@
 </div>
 
 <style>
-  .ws { height: 100%; overflow-y: auto; background: radial-gradient(70% 40% at 20% 0%, rgba(124, 58, 237, 0.08), transparent 70%); }
+  .ws { height: 100%; overflow-y: auto; background: radial-gradient(70% 40% at 20% 0%, rgba(var(--accent-rgb), 0.08), transparent 70%); }
   .inner { max-width: 1480px; margin: 0 auto; padding: 30px 36px 48px; display: flex; flex-direction: column; gap: 26px; }
   header h1 { font-size: 28px; margin-bottom: 4px; }
   header p { font-size: var(--fs-md); }

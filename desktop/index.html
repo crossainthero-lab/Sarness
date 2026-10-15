@@ -1,9 +1,19 @@
 <!doctype html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="light">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="color-scheme" content="dark" />
+    <meta name="color-scheme" content="light dark" />
+    <script>
+      (function () {
+        var pref = "light";
+        try { pref = (JSON.parse(localStorage.getItem("sarness.prefs.v1")) || {}).theme || "light"; } catch (e) {}
+        var m = window.matchMedia("(prefers-color-scheme: dark)");
+        function apply() { document.documentElement.dataset.theme = pref === "system" ? (m.matches ? "dark" : "light") : pref; }
+        apply();
+        m.addEventListener("change", function () { if (pref === "system") apply(); });
+      })();
+    </script>
     <title>Sarness</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   </head>

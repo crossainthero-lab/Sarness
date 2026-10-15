@@ -6,7 +6,7 @@
 </script>
 
 <NodeResizer minWidth={200} minHeight={120} isVisible={selected} lineClass="grp-line" handleClass="grp-handle" />
-<div class="grp" class:selected style="--gc:{(data.color as string) ?? '#8b5cf6'}">
+<div class="grp" class:selected style="--gc:{(data.color as string) ?? '#808080'}">
   <div class="gl" ondblclick={() => ed.rename(id)} role="presentation">{(data.label as string) ?? 'Group'}</div>
 </div>
 

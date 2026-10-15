@@ -107,8 +107,8 @@
     place-items: center;
     padding: 20px 64px;
     background:
-      radial-gradient(60% 50% at 50% 45%, rgba(139, 92, 246, 0.06), transparent 70%),
-      repeating-conic-gradient(rgba(255, 255, 255, 0.012) 0% 25%, transparent 0% 50%) 50% / 24px 24px;
+      radial-gradient(60% 50% at 50% 45%, rgba(var(--accent-rgb), 0.06), transparent 70%),
+      repeating-conic-gradient(rgba(var(--fg-rgb), 0.012) 0% 25%, transparent 0% 50%) 50% / 24px 24px;
   }
   .media, .preview {
     max-width: 100%;
