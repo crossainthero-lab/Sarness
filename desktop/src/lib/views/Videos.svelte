@@ -28,6 +28,8 @@
   import Toggle from '../ui/Toggle.svelte';
   import { duration } from '../util/format';
 
+  // int32-safe: the server's AI gateway rejects seeds above 2^31-1.
+  const randomSeed = () => Math.floor(Math.random() * 2 ** 31);
   let { active, paneId }: { active: boolean; paneId: string } = $props();
   const K = (n: string) => paneKey(paneId, n);
   const modeState = persisted(K('video.mode'), { mode: 'simple' as 'simple' | 'advanced' });
@@ -116,7 +118,7 @@
       fps: p.fps,
       steps: p.steps,
       guidance: p.guidance,
-      seed: p.random_seed ? -1 : p.seed,
+      seed: p.random_seed ? randomSeed() : p.seed,
       flow_shift: p.flow_shift,
       start_image: p.mode === 'i2v' ? p.start_image : null,
       end_image: p.mode === 'i2v' && caps.end_frame ? p.end_image : null,
@@ -256,7 +258,7 @@
         <Field label="Seed">
           <div class="row">
             <TextInput bind:value={p.seed} type="number" disabled={p.random_seed} mono size="sm" />
-            <IconButton label="Random seed now" onclick={() => { p.seed = Math.floor(Math.random() * 2 ** 32); p.random_seed = false; }}><Dices /></IconButton>
+            <IconButton label="Random seed now" onclick={() => { p.seed = randomSeed(); p.random_seed = false; }}><Dices /></IconButton>
           </div>
         </Field>
         <Toggle bind:checked={p.random_seed} label="New random seed each run" />

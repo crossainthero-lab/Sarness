@@ -551,13 +551,13 @@
     max-width: 860px;
     margin: 0 auto;
     padding: 8px 8px 8px 10px;
-    border-radius: 20px;
+    border-radius: 16px;
     background: var(--bg-2);
     border: 1px solid var(--line-1);
-    box-shadow: var(--shadow-2);
+    box-shadow: var(--shadow-1);
     transition: border-color var(--t-1), box-shadow var(--t-2);
   }
-  .composer:focus-within { border-color: var(--select-line); box-shadow: 0 0 0 4px rgba(var(--accent-rgb), 0.1), var(--shadow-2); }
+  .composer:focus-within { border-color: var(--select-line); box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.12); }
   .composer :global(textarea) { background: transparent; border: 0; box-shadow: none !important; font-size: 14.5px; padding: 8px 6px; }
   .crow { display: flex; align-items: center; gap: 8px; padding: 0 2px; }
   .attach { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 10px; color: var(--text-2); cursor: pointer; }

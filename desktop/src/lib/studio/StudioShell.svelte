@@ -101,6 +101,6 @@
   .body.stack { flex-direction: column; }
   .controls.drawer { width: auto; max-height: 52%; border-bottom: 1px solid var(--line-1); }
   .controls { flex-shrink: 0; overflow-y: auto; overflow-x: hidden; background: var(--bg-1); }
-  .out { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .out { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
   .adv { flex: 1; min-height: 0; display: flex; }
 </style>

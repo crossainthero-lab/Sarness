@@ -67,11 +67,11 @@
 <Menu bind:open={menu.open} bind:x={menu.x} bind:y={menu.y} bind:items={menu.items} />
 
 <style>
-  .bar { display: flex; align-items: center; gap: 16px; padding: 10px 16px 0; min-height: 52px; }
-  .info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+  .bar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px; padding: 10px 16px 0; min-height: 52px; }
+  .info { flex: 1 1 240px; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
   .prompt { color: var(--text-0); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .meta { display: flex; flex-wrap: wrap; gap: 4px 12px; color: var(--text-3); font-size: var(--fs-xs); }
-  .acts { display: flex; align-items: center; gap: 2px; flex-shrink: 0; }
+  .acts { display: flex; flex-wrap: wrap; align-items: center; gap: 2px; }
   .sep { width: 1px; height: 18px; background: var(--line-1); margin: 0 6px; }
   .dots { font-size: 9px; letter-spacing: 1px; }
   @media (max-width: 1280px) { .acts :global(.btn.ghost) { padding: 0 8px; } }

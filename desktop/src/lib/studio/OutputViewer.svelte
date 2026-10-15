@@ -30,7 +30,30 @@
 
   const preview = $derived(running ? jobs.previews[running.id] : null);
   const live = $derived(running ? jobs.progress[running.id] : null);
-  const elapsed = $derived(running?.started_at ? Date.now() / 1000 - running.started_at : null);
+  let cancelling = $state(false);
+  async function cancel() {
+    if (!running) return;
+    cancelling = true;
+    try {
+      await cancelJob(running.id);
+    } catch (e) {
+      toastError(e, 'Could not cancel');
+    } finally {
+      cancelling = false;
+    }
+  }
+
+  // Date.now() is not reactive: tick once a second, only while a job runs.
+  let now = $state(Date.now());
+  $effect(() => {
+    if (running?.status !== 'running') return;
+    now = Date.now();
+    const t = setInterval(() => (now = Date.now()), 1000);
+    return () => clearInterval(t);
+  });
+  const elapsed = $derived(running?.started_at ? Math.max(0, now / 1000 - running.started_at) : null);
+  import { cancelJob } from '../stores/jobs.svelte';
+  import { toastError } from '../stores/toast.svelte';
 </script>
 
 <svelte:window onkeydown={(e) => {
@@ -85,6 +108,9 @@
         </div>
       {/if}
       {#if queued}<span class="q">{queued} queued</span>{/if}
+      {#if running}
+        <button class="cancel" onclick={cancel} disabled={cancelling}>{cancelling ? 'Cancelling…' : 'Cancel'}</button>
+      {/if}
     </div>
   {/if}
 </div>
@@ -104,8 +130,10 @@
     flex: 1;
     min-height: 0;
     display: grid;
+    grid-template: minmax(0, 1fr) / minmax(0, 1fr);
     place-items: center;
-    padding: 20px 64px;
+    overflow: hidden;
+    padding: 16px 48px;
     background:
       radial-gradient(60% 50% at 50% 45%, rgba(var(--accent-rgb), 0.06), transparent 70%),
       repeating-conic-gradient(rgba(var(--fg-rgb), 0.012) 0% 25%, transparent 0% 50%) 50% / 24px 24px;
@@ -121,8 +149,8 @@
   img.media { opacity: 0; transform: scale(0.992); transition: opacity var(--t-3) var(--ease), transform var(--t-3) var(--ease-out); }
   img.media.loaded { opacity: 1; transform: none; }
   video.media { background: #000; animation: fade-in var(--t-3) var(--ease); }
-  .imgbtn { all: unset; cursor: zoom-in; max-width: 100%; max-height: 100%; display: grid; place-items: center; height: 100%; }
-  .imgbtn img { max-height: calc(100vh - 260px); }
+  .imgbtn { all: unset; cursor: zoom-in; max-width: 100%; max-height: 100%; min-height: 0; min-width: 0; display: flex; justify-content: center; align-items: center; height: 100%; width: 100%; }
+  .imgbtn img { height: 100%; width: auto; max-width: 100%; max-height: 100%; object-fit: contain; }
   .pending { position: relative; display: grid; place-items: center; max-width: 100%; max-height: 100%; }
   .preview { filter: saturate(1.05); image-rendering: auto; width: min(70vh, 100%); animation: fade-in var(--t-2); }
   .placeholder { width: 280px; height: 280px; border-radius: var(--r-xl); display: grid; place-items: center; background: var(--bg-2); border: 1px dashed var(--line-2); }
@@ -132,6 +160,9 @@
   .right { right: 14px; }
   .corner { position: absolute; top: 14px; right: 14px; opacity: 0; transition: opacity var(--t-2); }
   .nav :global(button), .corner :global(button) { background: rgba(10, 10, 14, 0.6); backdrop-filter: blur(10px); border: 1px solid var(--line-1); }
+  .cancel { border: 1px solid var(--line-2); background: var(--bg-0); color: var(--text-0); border-radius: var(--r-sm); height: 26px; padding: 0 10px; font-size: var(--fs-sm); font-weight: 550; cursor: pointer; flex-shrink: 0; }
+  .cancel:hover:not(:disabled) { border-color: var(--err); color: var(--err); }
+  .cancel:disabled { opacity: 0.6; cursor: default; }
   .jobbar {
     position: absolute;
     left: 50%;

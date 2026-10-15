@@ -196,7 +196,8 @@ def resolve_seeds(graph: dict[str, Any], rng: random.Random | None = None) -> di
             if p.kind == "seed":
                 v = params.get(p.name, p.default)
                 if v is None or v < 0:
-                    params[p.name] = rng.randrange(0, 2**32 - 1)
+                    # Stay within int32: the remote AI gateway rejects larger seeds (HTTP 422).
+                    params[p.name] = rng.randrange(0, 2**31 - 1)
     return g
 
 
