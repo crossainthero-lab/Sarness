@@ -152,7 +152,10 @@
   }
 
   function rerun(g: Generation, exact: boolean) {
-    run(api.post<Job>(`/v1/generations/${g.id}/rerun`, { new_seed: !exact }).then((j) => j));
+    const simple = g.simple as Record<string, unknown> | null;
+    // New-seed reruns pick the seed here so it stays int32-safe for the gateway.
+    if (!exact && simple) run(submitJob({ kind: 'image', simple: { ...simple, seed: randomSeed() }, ...destination() }));
+    else run(api.post<Job>(`/v1/generations/${g.id}/rerun`, { new_seed: !exact }));
   }
 
   function vary(g: Generation, strength: number) {
@@ -165,7 +168,7 @@
       reference_image: g.file_id,
       mask_image: null,
       denoise: strength,
-      seed: -1,
+      seed: randomSeed(),
       batch_size: 1,
       width: g.width,
       height: g.height,

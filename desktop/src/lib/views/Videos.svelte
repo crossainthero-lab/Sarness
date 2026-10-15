@@ -151,7 +151,9 @@
   }
 
   function rerun(g: Generation, exact: boolean) {
-    run(api.post<Job>(`/v1/generations/${g.id}/rerun`, { new_seed: !exact }));
+    const simple = g.simple as Record<string, unknown> | null;
+    if (!exact && simple) run(submitJob({ kind: 'video', simple: { ...simple, seed: randomSeed() }, ...destination() }));
+    else run(api.post<Job>(`/v1/generations/${g.id}/rerun`, { new_seed: !exact }));
   }
 
   async function edit(g: Generation) {
