@@ -7,6 +7,7 @@ import { runLoop, type LoopDeps } from './loop';
 import { native } from './native';
 import { systemPrompt, workspaceTitle } from './prompt';
 import { appendLive, applyEvent, newRun } from './reduce';
+import { diffSnapshots, mergeChanges, type Snapshot } from './snapshot';
 import { agentFor } from './state.svelte';
 import type { AgentMessage, AgentRun, ApprovalInfo, ModelTurn, PermissionMode, RunOutcome } from './types';
 
@@ -152,6 +153,13 @@ export class AgentController {
     this.running = true;
     this.abort = new AbortController();
     const signal = this.abort.signal;
+    // Baseline of the project's files, to report what REALLY changed on disk afterwards.
+    let baseline: { files: Snapshot; truncated: boolean } | null = null;
+    try {
+      baseline = await native.snapshot(project);
+    } catch {
+      /* summary falls back to tool-reported changes */
+    }
     this.unlisten = await native.onOutput((c) => c.run_id === run.id && appendLive(run, c.call_id, c.stream, c.text)).catch(() => null) as (() => void) | null;
     const { ref, ctx } = this.getModel();
     const modelRef = run.model ?? ref!;
@@ -184,7 +192,20 @@ export class AgentController {
     } catch (e) {
       outcome = { status: 'error', reason: (e as Error).message };
     }
+    await this.recordDiskChanges(run, project, baseline);
     this.finish(run, outcome);
+  }
+
+  private async recordDiskChanges(run: AgentRun, project: string, baseline: { files: Snapshot; truncated: boolean } | null) {
+    if (!baseline) return;
+    try {
+      const after = await native.snapshot(project);
+      const d = diffSnapshots(baseline.files, after.files);
+      d.truncated = baseline.truncated || after.truncated || undefined;
+      run.disk = mergeChanges(run.disk, d);
+    } catch {
+      /* project folder vanished or tool layer unavailable */
+    }
   }
 
   private finish(run: AgentRun, outcome: RunOutcome) {

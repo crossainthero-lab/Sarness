@@ -75,6 +75,7 @@ export interface AgentRun {
   model: string | null;
   permission: PermissionMode;
   items: AgentItem[];
+  disk?: import('./snapshot').DiskChanges; // what really changed on disk during the task
   phase?: Phase; // live status while running
   drafting?: string; // name of the tool call the model is currently writing
 }

@@ -308,3 +308,25 @@ pub fn tree(root: &Path, depth: usize) -> Value {
     }
     node(root, 0, depth)
 }
+
+/// Size and modification time of every (non-ignored) file, so a task's real effect on disk can be
+/// compared before/after regardless of which tool (or shell command) made the change.
+pub fn snapshot(root: &Path, max: usize) -> Value {
+    let mut wb = ignore::WalkBuilder::new(root);
+    wb.hidden(false).filter_entry(|e| !SKIP_DIRS.contains(&e.file_name().to_string_lossy().as_ref()));
+    let mut files = serde_json::Map::new();
+    for ent in wb.build().flatten() {
+        if !ent.path().is_file() {
+            continue;
+        }
+        if files.len() >= max {
+            return json!({"files": files, "truncated": true});
+        }
+        if let Ok(m) = ent.metadata() {
+            let mt = m.modified().ok().and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok()).map(|d| d.as_nanos() as u64).unwrap_or(0);
+            let rel = ent.path().strip_prefix(root).unwrap_or(ent.path()).display().to_string();
+            files.insert(rel, json!([m.len(), mt]));
+        }
+    }
+    json!({"files": files, "truncated": false})
+}

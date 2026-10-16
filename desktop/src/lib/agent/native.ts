@@ -42,6 +42,7 @@ export interface NativeAgent {
   tree(path: string, depth?: number): Promise<TreeNode>;
   git(path: string): Promise<GitState>;
   diff(path: string, file?: string): Promise<string>;
+  snapshot(path: string): Promise<{ files: Record<string, [number, number]>; truncated: boolean }>;
   pickFolder(title: string): Promise<string | null>;
   onOutput(cb: (c: OutputChunk) => void): Promise<() => void>;
 }
@@ -94,6 +95,10 @@ export const native: NativeAgent = {
   async diff(path, file) {
     if (!isTauri) throw unavailable();
     return (await tauri()).invoke('project_diff', { path, file: file ?? null });
+  },
+  async snapshot(path) {
+    if (!isTauri) throw unavailable();
+    return (await tauri()).invoke('project_snapshot', { path });
   },
   async pickFolder(title) {
     if (!isTauri) throw unavailable();

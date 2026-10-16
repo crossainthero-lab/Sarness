@@ -138,3 +138,10 @@ pub async fn project_diff(st: State<'_, AgentState>, path: String, file: Option<
     }
     Ok(out)
 }
+
+/// Before/after record of the project's files (size + mtime), used for the task summary.
+#[tauri::command]
+pub fn project_snapshot(st: State<'_, AgentState>, path: String) -> Result<Value, String> {
+    let ws = open_registered(&st, &path)?;
+    Ok(fstools::snapshot(&ws.root, 20_000))
+}

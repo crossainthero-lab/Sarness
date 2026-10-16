@@ -444,7 +444,8 @@ pub fn run() {
             agent::commands::agent_tool_defs, agent::commands::agent_call, agent::commands::agent_cancel,
             agent::commands::agent_end_run, agent::commands::agent_reset_run, agent::commands::projects_list,
             agent::commands::projects_add, agent::commands::projects_remove, agent::commands::project_create,
-            agent::commands::project_tree, agent::commands::project_git, agent::commands::project_diff
+            agent::commands::project_tree, agent::commands::project_git, agent::commands::project_diff,
+            agent::commands::project_snapshot
         ])
         .build(tauri::generate_context!())
         .expect("error while building Sarness")

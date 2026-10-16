@@ -19,6 +19,8 @@
   );
   const busy = $derived(item.status === 'running');
   const title = $derived.by(() => {
+    if (item.status === 'denied' && item.name === 'run_command') return `Declined: ${a.command ?? ''}`;
+    if (item.status === 'denied' || item.status === 'cancelled') return `${item.status === 'denied' ? 'Declined' : 'Stopped'}: ${item.name.replace(/_/g, ' ')} ${a.path ?? a.command ?? ''}`;
     switch (item.name) {
       case 'read_file': return `Read ${a.path ?? ''}`;
       case 'list_dir': return `Listed ${a.path || 'project'}`;

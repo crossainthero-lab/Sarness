@@ -21,6 +21,11 @@
   const phase = $derived(currentPhase(run));
   const sum = $derived(summarize(run));
   const live = $derived(run.status === 'running');
+  const byCommand = $derived.by(() => {
+    const known = new Set(sum.files.map((f) => f.path));
+    const d = run.disk;
+    return d ? [...d.created.map((p) => `${p} (new)`), ...d.modified, ...d.deleted.map((p) => `${p} (deleted)`)].filter((l) => !known.has(l.replace(/ \((new|deleted)\)$/, ''))) : [];
+  });
   const failedCmds = $derived(sum.commands.filter((c) => !c.ok && !c.test).length);
   const statusLabel = $derived({ completed: 'Completed', cancelled: 'Stopped', blocked: 'Blocked', error: 'Failed', running: phase }[run.status]);
 </script>
@@ -76,6 +81,9 @@
           {sum.verification === 'passed' ? 'Last build/test command exited 0' : sum.verification === 'failed' ? 'Last build/test command failed' : sum.verification === 'stale' ? 'Files changed after the last passing command' : 'Nothing was built or tested'}
         </span>
       </div>
+      {#if run.disk?.empty.length}
+        <div class="warnbox" role="alert">⚠ Empty file{run.disk.empty.length === 1 ? '' : 's'} on disk: <code>{run.disk.empty.slice(0, 6).join(', ')}</code>. A command that exits 0 does not prove an empty file works; check the agent’s claims.</div>
+      {/if}
       {#if sum.files.length}
         <ul class="files">
           {#each sum.files as f (f.path)}
@@ -83,7 +91,11 @@
               <span class="pm">{#if f.deleted}deleted{:else if f.moved}moved from {f.moved}{:else}{#if f.created}new · {/if}<em class="a">+{f.added}</em> <em class="r">−{f.removed}</em>{/if}</span></button></li>
           {/each}
         </ul>
-      {:else}
+      {/if}
+      {#if byCommand.length}
+        <p class="faint small">Also changed on disk (by commands, not file tools): {byCommand.slice(0, 8).join(', ')}{byCommand.length > 8 ? ` and ${byCommand.length - 8} more` : ''}{run.disk?.truncated ? ' (project too large to scan completely)' : ''}.</p>
+      {/if}
+      {#if !sum.files.length && !byCommand.length}
         <p class="faint small">No files were changed.</p>
       {/if}
       {#if sum.commands.length}
@@ -140,5 +152,6 @@
   .cmds li span:first-child { color: var(--ok); width: 12px; }
   .cmds li.bad span:first-child { color: var(--err); }
   .cmds code { flex: 1; min-width: 0; font-family: var(--font-mono, ui-monospace, monospace); }
+  .warnbox { padding: 8px 12px; border-radius: var(--r-md); background: var(--err-bg); border: 1px solid var(--err); font-size: var(--fs-sm); }
   .sacts { display: flex; justify-content: flex-end; }
 </style>

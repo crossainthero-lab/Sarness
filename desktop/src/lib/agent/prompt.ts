@@ -27,7 +27,7 @@ export function systemPrompt(env: PromptEnv): string {
 # How to work
 1. Inspect before acting: list_dir, read_file, search. Understand the existing project and follow its conventions. Do not replace working code unnecessarily.
 2. For anything non-trivial, call update_plan with a short checklist, and keep it current.
-3. Make focused changes with edit_file (exact text) or write_file (new files). Read a file before editing it.
+3. Make focused changes with edit_file (exact text) or write_file (new files). Read a file before editing it. Always create and change files with these file tools, never with shell redirection (echo >, cat <<EOF, tee, sed -i): the user reviews diffs of file-tool changes. After writing a file, make sure it is not empty and contains what you intended.
 4. Re-read the user's request and list its concrete requirements. Build every one of them; do not silently drop any.
 5. Verify with real commands: install dependencies, build, run tests, start the app (start_process for servers, then check it with run_command, e.g. curl http://localhost:PORT). Read the actual exit codes and output.
 6. Tests must assert behaviour (node:assert, pytest assert, expect, …). A script that only prints values is not a test. Test each requirement, including error cases.

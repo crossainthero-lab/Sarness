@@ -88,7 +88,7 @@ export interface RunSummary {
   denied: number;
 }
 
-const TEST_RE = /\b(test|tests|pytest|jest|vitest|mocha|check|tsc|clippy|build|compile|lint|verify)\b/i;
+const TEST_RE = /(^|[\s/_.-])(test|tests|spec|pytest|jest|vitest|mocha|ava|tap|check|tsc|clippy|build|compile|lint|verify)(?![a-z])/i;
 
 export function summarize(run: AgentRun): RunSummary {
   const files = new Map<string, RunSummary['files'][number]>();

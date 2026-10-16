@@ -312,3 +312,19 @@ async fn a_small_project_can_be_built_tested_broken_and_fixed_with_the_tools() {
     assert_eq!(ui["exit_code"], 0);
     assert!(ui["stdout"].as_str().unwrap().contains("PASS"));
 }
+
+#[test]
+fn snapshot_sees_changes_made_by_any_means() {
+    let d = tempfile::tempdir().unwrap();
+    std::fs::write(d.path().join("a.txt"), "x").unwrap();
+    std::fs::create_dir(d.path().join("node_modules")).unwrap();
+    std::fs::write(d.path().join("node_modules/skip.js"), "x").unwrap();
+    let before = super::fstools::snapshot(d.path(), 100);
+    assert!(before["files"]["a.txt"].is_array() && before["files"].get("node_modules/skip.js").is_none());
+    std::fs::write(d.path().join("empty.js"), "").unwrap();
+    std::fs::write(d.path().join("a.txt"), "longer").unwrap();
+    let after = super::fstools::snapshot(d.path(), 100);
+    assert_eq!(after["files"]["empty.js"][0], 0);
+    assert_ne!(before["files"]["a.txt"], after["files"]["a.txt"]);
+    assert_eq!(super::fstools::snapshot(d.path(), 1)["truncated"], true);
+}

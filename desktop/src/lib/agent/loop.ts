@@ -25,7 +25,7 @@ export interface LoopOptions {
 export const MAX_TOOL_RESULT_CHARS = 14_000;
 const WRITE_TOOLS = new Set(['write_file', 'edit_file', 'delete_path', 'move_path']);
 const READ_TOOLS = new Set(['read_file', 'list_dir', 'search', 'find_files', 'git_status', 'git_diff', 'git_log', 'diagnostics', 'process_output', 'list_processes']);
-const TEST_RE = /\b(test|tests|pytest|jest|vitest|mocha|check|lint|tsc|clippy|build|compile|verify)\b/i;
+const TEST_RE = /(^|[\s/_.-])(test|tests|spec|pytest|jest|vitest|mocha|ava|tap|check|lint|tsc|clippy|build|compile|verify)(?![a-z])/i;
 
 export function phaseFor(name: string, args: Record<string, unknown>): Phase {
   if (WRITE_TOOLS.has(name)) return 'Editing';
