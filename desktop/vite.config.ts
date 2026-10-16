@@ -37,8 +37,8 @@ export default defineConfig({
     chunkSizeWarningLimit: 1500,
   },
   test: {
-    // jsdom makes vitest compile .svelte.ts for the client, so rune effects (persistence) really run.
-    environment: 'jsdom',
+    // a DOM environment makes vitest compile .svelte.ts for the client, so rune effects (persistence) really run.
+    environment: 'happy-dom',
     include: ['src/**/*.test.ts'],
   },
 });
