@@ -29,8 +29,7 @@
   import TextInput from '../ui/TextInput.svelte';
   import Toggle from '../ui/Toggle.svelte';
 
-  // int32-safe: the server's AI gateway rejects seeds above 2^31-1.
-  const randomSeed = () => Math.floor(Math.random() * 2 ** 31);
+  import { randomSeed, seedFor } from '../util/seed';
   let { active, paneId }: { active: boolean; paneId: string } = $props();
   const K = (n: string) => paneKey(paneId, n);
   const modeState = persisted(K('image.mode'), { mode: 'simple' as 'simple' | 'advanced' });
@@ -115,7 +114,7 @@
       batch_size: p.batch_size,
       steps: p.steps,
       guidance: p.guidance,
-      seed: p.random_seed ? randomSeed() : p.seed,
+      seed: seedFor(p.random_seed, p.seed),
       scheduler: p.scheduler,
       denoise: p.denoise,
       reference_image: p.reference_image,

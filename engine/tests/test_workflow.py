@@ -125,6 +125,21 @@ def test_seed_resolution():
     assert next(n for n in g["nodes"] if n["id"] == "sampler")["params"]["seed"] == -1
 
 
+def test_resolved_seeds_fit_signed_int32_for_image_and_video():
+    for build, simple in ((templates.image_workflow, {"model": "sdxl-turbo", "prompt": "x", "seed": -1}),
+                          (templates.video_workflow, {"model": "wan", "prompt": "x", "seed": -1})):
+        g = build(simple)
+        for _ in range(500):
+            r = wf.resolve_seeds(g)
+            seeds = [n["params"]["seed"] for n in r["nodes"] if "seed" in (n.get("params") or {})]
+            assert seeds and all(0 <= s <= wf.SEED_MAX for s in seeds)
+
+
+def test_clamp_seed_keeps_in_range_values():
+    assert wf.clamp_seed(5) == 5 and wf.clamp_seed(wf.SEED_MAX) == wf.SEED_MAX
+    assert 0 <= wf.clamp_seed(2**32 - 1) <= wf.SEED_MAX and 0 <= wf.clamp_seed(wf.SEED_MAX + 1) <= wf.SEED_MAX
+
+
 # ---- simple <-> workflow ------------------------------------------------------
 @pytest.mark.parametrize("simple", [
     {"model": "sdxl-turbo", "prompt": "a cat", "steps": 4, "guidance": 0.0, "width": 512, "height": 512},

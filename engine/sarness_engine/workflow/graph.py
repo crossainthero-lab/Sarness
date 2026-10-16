@@ -183,6 +183,15 @@ def order(graph: dict[str, Any], *, prune: bool = True) -> list[str]:
     return result
 
 
+# The remote AI gateway validates seeds as signed 32-bit integers (HTTP 422 above this).
+SEED_MAX = 2**31 - 1
+
+
+def clamp_seed(value: int) -> int:
+    """Map any non-negative seed into the gateway-safe range without changing in-range values."""
+    return int(value) % (SEED_MAX + 1)
+
+
 def resolve_seeds(graph: dict[str, Any], rng: random.Random | None = None) -> dict[str, Any]:
     """Return a copy of the graph with every negative seed replaced by a concrete value."""
     rng = rng or random.SystemRandom()
@@ -196,8 +205,7 @@ def resolve_seeds(graph: dict[str, Any], rng: random.Random | None = None) -> di
             if p.kind == "seed":
                 v = params.get(p.name, p.default)
                 if v is None or v < 0:
-                    # Stay within int32: the remote AI gateway rejects larger seeds (HTTP 422).
-                    params[p.name] = rng.randrange(0, 2**31 - 1)
+                    params[p.name] = rng.randrange(0, SEED_MAX)
     return g
 
 

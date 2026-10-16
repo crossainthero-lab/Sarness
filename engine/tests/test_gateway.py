@@ -47,6 +47,8 @@ def _mock_gateway() -> FastAPI:
     def job(body: dict, authorization: str = Header("")):
         auth(authorization)
         app.state.requests.append(body)
+        if body.get("seed") is not None and not (0 <= body["seed"] <= 2147483647):
+            raise HTTPException(422, "Input should be less than or equal to 2147483647")
         if body.get("image_upload_id") and body["model"] == "z-image-turbo":
             raise HTTPException(422, "z-image-turbo does not support image_upload_id")
         jid = f"r{len(app.state.jobs)}"
@@ -212,3 +214,45 @@ def test_gateway_rejects_custom_graphs(client):
         {"id": "e", "source": "s2", "source_output": "latent", "target": "decode", "target_input": "latent"}]
     r = client.post("/v1/jobs", json={"kind": "image", "workflow": wf})
     assert r.status_code == 422 and "simple-mode" in r.json()["detail"]
+
+
+SEED_MAX = 2**31 - 1
+
+
+def _image_job(c, **simple):
+    base = {"model": "gw:z-image-turbo", "prompt": "seed check", "width": 512, "height": 512, "steps": 9}
+    r = c.post("/v1/jobs", json={"kind": "image", "simple": {**base, **simple}})
+    assert r.status_code == 200, r.text
+    return _wait(c, r.json()["id"])
+
+
+def test_gateway_generate_random_seed_is_int32(client, gateway):
+    for _ in range(12):  # -1 means "random": every resolved seed must pass the gateway
+        j = _image_job(client, seed=-1)
+        assert j["status"] == "completed", j
+        assert 0 <= gateway.state.requests[-1]["seed"] <= SEED_MAX
+
+
+def test_gateway_out_of_range_and_batch_seeds_are_clamped(client, gateway):
+    j = _image_job(client, seed=2**32 - 3)  # typed by a user, above int32
+    assert j["status"] == "completed", j
+    assert 0 <= gateway.state.requests[-1]["seed"] <= SEED_MAX
+    j = _image_job(client, seed=SEED_MAX, batch_size=3)  # seed + i would overflow
+    assert j["status"] == "completed", j
+    assert all(0 <= r["seed"] <= SEED_MAX for r in gateway.state.requests[-3:])
+
+
+def test_gateway_regenerate_and_retry_new_seed_are_int32(client, gateway):
+    j = _image_job(client, seed=-1)
+    gens = client.get("/v1/generations").json()
+    items = gens["items"] if isinstance(gens, dict) else gens
+    gid = next(g["id"] for g in items if g["job_id"] == j["id"])
+    for _ in range(10):
+        r = client.post(f"/v1/generations/{gid}/rerun", json={"new_seed": True})  # Regenerate / Vary path
+        assert r.status_code == 200, r.text
+        assert _wait(client, r.json()["id"])["status"] == "completed"
+        assert 0 <= gateway.state.requests[-1]["seed"] <= SEED_MAX
+        r = client.post(f"/v1/jobs/{j['id']}/retry", json={"new_seed": True})  # Retry path
+        assert r.status_code == 200, r.text
+        assert _wait(client, r.json()["id"])["status"] == "completed"
+        assert 0 <= gateway.state.requests[-1]["seed"] <= SEED_MAX

@@ -35,8 +35,13 @@
   const mine = $derived(activeJobs(kind).filter((j) => history.state.follow.has(j.id)));
   let rootEl: HTMLDivElement | undefined = $state();
   let width = $state(900);
+  let height = $state(700);
+  const short = $derived(height < 560);
   const narrow = $derived(width < 760);
-  let controlsOpen = $state(true);
+  // In compact panes the settings drawer starts closed until the user asks for it.
+  let controlsOpen = $state(false);
+  let touched = $state(false);
+  const drawer = $derived(touched ? controlsOpen : !short);
   const running: Job | null = $derived(mine.find((j) => j.status === 'running') ?? mine[0] ?? null);
   const queued = $derived(Math.max(0, mine.length - (running ? 1 : 0)));
   const current = $derived(history.current);
@@ -56,13 +61,13 @@
 
 <svelte:window onkeydown={keys} />
 
-<div class="studio" bind:clientWidth={width} bind:this={rootEl}>
+<div class="studio" bind:clientWidth={width} bind:clientHeight={height} bind:this={rootEl}>
   <header>
     <span class="dest" title="New generations are saved here">{dest}</span>
     <div class="spacer"></div>
     {#if mode === 'simple'}
       {#if narrow}
-        <Button size="sm" variant="ghost" onclick={() => (controlsOpen = !controlsOpen)}><SlidersHorizontal />{controlsOpen ? 'Hide settings' : 'Settings'}</Button>
+        <Button size="sm" variant="ghost" onclick={() => { controlsOpen = !drawer; touched = true; }}><SlidersHorizontal />{drawer ? 'Hide settings' : 'Settings'}</Button>
       {/if}
       <Button size="sm" variant="ghost" onclick={onnew}><Plus />New</Button>
     {/if}
@@ -74,7 +79,7 @@
       {#if !narrow}
         <aside class="controls" style="width:{panel}px">{@render controls()}</aside>
         <Splitter id="{paneId}-controls" bind:size={panel} min={300} max={560} />
-      {:else if controlsOpen}
+      {:else if drawer}
         <aside class="controls drawer">{@render controls()}</aside>
       {/if}
       <section class="out">
@@ -84,7 +89,7 @@
         {#if current}
           <ActionBar g={current} onrerun={(exact) => onrerun(current, exact)} onvary={onvary ? (s) => onvary(current, s) : undefined} onedit={() => onedit(current)} />
         {/if}
-        {#if history.state.items.length}<HistoryStrip {history} />{/if}
+        {#if history.state.items.length && !short}<HistoryStrip {history} />{/if}
       </section>
     </div>
   {:else}
@@ -101,6 +106,6 @@
   .body.stack { flex-direction: column; }
   .controls.drawer { width: auto; max-height: 52%; border-bottom: 1px solid var(--line-1); }
   .controls { flex-shrink: 0; overflow-y: auto; overflow-x: hidden; background: var(--bg-1); }
-  .out { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+  .out { overflow: hidden; flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
   .adv { flex: 1; min-height: 0; display: flex; }
 </style>
