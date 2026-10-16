@@ -166,6 +166,10 @@ fn outside_target(word: &str, ws: &Workspace) -> Option<String> {
     if r.inside {
         return None;
     }
+    // Relative traversal (`../..`) is never a URL path: if it leaves the project it is outside.
+    if !w.starts_with('/') && !w.starts_with('~') {
+        return Some(w.to_string());
+    }
     // "/api/users" in a URL path or regex is not a filesystem reference: require that the
     // parent directory really exists (and is not just "/").
     let parent = r.path.parent()?;
@@ -562,6 +566,15 @@ mod tests {
     fn full_access_allows_installs_and_outside() {
         assert_eq!(cmd("npm install", Mode::FullAccess), Verdict::Allow);
         assert_eq!(cmd("cat /etc/hosts", Mode::FullAccess), Verdict::Allow);
+    }
+
+    #[test]
+    fn relative_traversal_out_of_the_project_always_asks() {
+        // independent of how deep the project folder is or what the target resolves to
+        for c in ["cp secret ../../elsewhere", "cat ../../../../../../../../../../etc/hostname", "mv a.txt ../b.txt", "echo x > ../../../out.txt", "ls .."] {
+            assert!(is_ask(&cmd(c, Mode::WorkspaceAuto)), "{c}");
+        }
+        assert_eq!(cmd("cat ./sub/../file.txt", Mode::WorkspaceAuto), Verdict::Allow);
     }
 
     #[test]
