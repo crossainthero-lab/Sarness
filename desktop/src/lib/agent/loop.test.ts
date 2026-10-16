@@ -225,6 +225,21 @@ describe('agent loop safety nets', () => {
     expect(out.status).toBe('blocked');
     expect((out as any).reason).toContain('empty reply twice');
   });
+  it('will not let the agent claim success while its last test run is failing', async () => {
+    const h = harness(
+      [turn('', call('c1', 'run_command', { command: 'npm test' })), turn('All requirements are met!'), turn('Honest report: the test still fails with an assertion error.')],
+      () => cmd('npm test', 1, '', 'AssertionError'),
+    );
+    const out = await runLoop(base(), h.deps, new AbortController().signal);
+    expect(out).toEqual({ status: 'completed', final: 'Honest report: the test still fails with an assertion error.' });
+    expect((h.seen[2].at(-1) as any).content).toContain('FAILED');
+  });
+  it('a failing check followed by a passing one needs no reminder', async () => {
+    let n = 0;
+    const h = harness([turn('', call('c1', 'run_command', { command: 'npm test' })), turn('', call('c2', 'run_command', { command: 'npm test' })), turn('Done.')], () => cmd('npm test', n++ === 0 ? 1 : 0));
+    expect((await runLoop(base(), h.deps, new AbortController().signal)).status).toBe('completed');
+    expect(h.modelCalls()).toBe(3);
+  });
   it('reports which tool the model is drafting', async () => {
     const events: LoopEvent[] = [];
     const deps: LoopDeps = {

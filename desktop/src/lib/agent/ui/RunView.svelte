@@ -81,6 +81,9 @@
           {sum.verification === 'passed' ? 'Last build/test command exited 0' : sum.verification === 'failed' ? 'Last build/test command failed' : sum.verification === 'stale' ? 'Files changed after the last passing command' : 'Nothing was built or tested'}
         </span>
       </div>
+      {#if run.status === 'completed' && sum.verification === 'failed'}
+        <div class="warnbox" role="alert"><strong>Do not trust a “done” claim here:</strong> the agent finished, but the last build/test command it ran exited with an error. Review the failing output above.</div>
+      {/if}
       {#if run.disk?.empty.length}
         <div class="warnbox" role="alert">⚠ Empty file{run.disk.empty.length === 1 ? '' : 's'} on disk: <code>{run.disk.empty.slice(0, 6).join(', ')}</code>. A command that exits 0 does not prove an empty file works; check the agent’s claims.</div>
       {/if}

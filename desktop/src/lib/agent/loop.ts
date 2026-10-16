@@ -111,6 +111,8 @@ export async function runLoop(messages: AgentMessage[], deps: LoopDeps, signal: 
   let nudgedVerify = false;
   let nudgedLength = false;
   let nudgedEmpty = false;
+  let nudgedFailing = false;
+  let checkFailing = false; // the most recent build/test command exited non-zero
   const recent: string[] = []; // signatures of recent tool calls, to catch an agent going in circles
   let unverifiedEdits = false; // files changed with no later successful command
   let turnSeq = 0;
@@ -182,6 +184,12 @@ export async function runLoop(messages: AgentMessage[], deps: LoopDeps, signal: 
         messages.push({ role: 'user', content: 'You wrote a tool call as text. Nothing was executed. Use the provided function-calling interface to call tools.' });
         continue;
       }
+      if (checkFailing && !nudgedFailing) {
+        nudgedFailing = true;
+        deps.emit({ type: 'notice', level: 'warn', text: 'The agent wants to finish but the last build/test command failed; asking it to fix this or say so plainly.' });
+        messages.push({ role: 'user', content: 'The last build or test command you ran FAILED (non-zero exit code) and you have not fixed it. Do not claim success. Either fix the problem and re-run, or report plainly that it still fails and why.' });
+        continue;
+      }
       if (unverifiedEdits && !nudgedVerify) {
         nudgedVerify = true;
         deps.emit({ type: 'notice', level: 'info', text: 'Files changed but nothing was run afterwards; asking the agent to verify.' });
@@ -235,6 +243,10 @@ export async function runLoop(messages: AgentMessage[], deps: LoopDeps, signal: 
         deps.emit({ type: 'tool_result', callId: call.id, status: res.ui?.cancelled ? 'cancelled' : failed ? 'failed' : 'done', content: res.content, ui: res.ui });
         if (res.status === 'ok' && WRITE_TOOLS.has(name)) unverifiedEdits = true;
         if (res.status === 'ok' && (name === 'run_command' || name === 'start_process') && res.ui?.exit_code === 0) unverifiedEdits = false;
+        if (name === 'run_command' && res.ui?.kind === 'command' && !res.ui.cancelled && TEST_RE.test(String(res.ui.command ?? ''))) {
+          checkFailing = res.ui.exit_code !== 0 || !!res.ui.timed_out;
+          if (checkFailing) nudgedFailing = false; // a new failure earns a new reminder
+        }
         if (name === 'update_plan' && res.ui?.steps) deps.emit({ type: 'plan', steps: res.ui.steps });
         messages.push({ role: 'tool', tool_call_id: call.id, content: clip(res.content) });
       } else if (res.status === 'denied') {
