@@ -110,6 +110,7 @@ export async function runLoop(messages: AgentMessage[], deps: LoopDeps, signal: 
   let nudgedText = false;
   let nudgedVerify = false;
   let nudgedLength = false;
+  let nudgedEmpty = false;
   const recent: string[] = []; // signatures of recent tool calls, to catch an agent going in circles
   let unverifiedEdits = false; // files changed with no later successful command
   let turnSeq = 0;
@@ -162,6 +163,16 @@ export async function runLoop(messages: AgentMessage[], deps: LoopDeps, signal: 
       deps.emit({ type: 'notice', level: 'warn', text: 'The model’s reply hit the length limit and was cut off. Asking it to continue in smaller steps.' });
       messages.push({ role: 'user', content: 'Your reply was cut off. Continue with smaller steps: make one focused tool call at a time and keep file contents short.' });
       continue;
+    }
+    // ---- an empty reply is never "done" (e.g. the model spent its whole output budget thinking)
+    if (!turn.toolCalls.length && !turn.content.trim()) {
+      if (!nudgedEmpty) {
+        nudgedEmpty = true;
+        deps.emit({ type: 'notice', level: 'warn', text: turn.finish === 'length' ? 'The model used its whole output budget without answering. Asking it to continue briefly.' : 'The model returned an empty reply. Asking it to continue.' });
+        messages.push({ role: 'user', content: 'Your last reply was empty. Keep working with tool calls (keep your reasoning short), or if you are finished, give your final report: what changed, how you verified it, what is unmet.' });
+        continue;
+      }
+      return { status: 'blocked', reason: 'The model returned an empty reply twice (it may be out of output budget or not suited to tool use). Try Continue task, or choose another model.' };
     }
     // ---- no tool calls: finished, unless the model needs a nudge
     if (!turn.toolCalls.length) {

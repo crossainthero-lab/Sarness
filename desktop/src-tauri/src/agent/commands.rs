@@ -53,7 +53,10 @@ pub fn agent_reset_run(st: State<'_, AgentState>, run_id: String) {
 
 #[tauri::command]
 pub fn projects_list(st: State<'_, AgentState>) -> Vec<projects::Project> {
-    projects::load(&st.projects_file).into_iter().filter(|p| Path::new(&p.path).is_dir()).collect()
+    projects::load(&st.projects_file)
+        .into_iter()
+        .filter(|p| Path::new(&p.path).is_dir() && !Path::new(&p.path).components().any(|c| c.as_os_str() == ".git"))
+        .collect()
 }
 
 #[tauri::command]

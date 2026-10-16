@@ -215,6 +215,16 @@ describe('agent loop safety nets', () => {
     expect(out.status).toBe('completed');
     expect((h.seen[1].at(-1) as any).content).toContain('cut off');
   });
+  it('never treats an empty reply as completion: nudges once, then blocks', async () => {
+    const empty = turn('   ');
+    const h = harness([empty, turn('Final report: done.')], () => ok(''));
+    expect(await runLoop(base(), h.deps, new AbortController().signal)).toEqual({ status: 'completed', final: 'Final report: done.' });
+    expect((h.seen[1].at(-1) as any).content).toContain('empty');
+    const h2 = harness([empty, empty], () => ok(''));
+    const out = await runLoop(base(), h2.deps, new AbortController().signal);
+    expect(out.status).toBe('blocked');
+    expect((out as any).reason).toContain('empty reply twice');
+  });
   it('reports which tool the model is drafting', async () => {
     const events: LoopEvent[] = [];
     const deps: LoopDeps = {

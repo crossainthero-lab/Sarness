@@ -234,7 +234,7 @@ export class AgentController {
     try {
       await streamChat(
         '/v1/agent/completions',
-        { model_ref: modelRef, messages, tools: toolsCache, tool_choice: 'auto', params: { temperature: 0.2, max_tokens: 4096, thinking: false } },
+        { model_ref: modelRef, messages, tools: toolsCache, tool_choice: 'auto', params: { temperature: 0.2, max_tokens: 6144 } },
         (ev: any) => {
           if (ev.type === 'delta') {
             content += ev.content ?? '';
