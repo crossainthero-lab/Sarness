@@ -1,44 +1,83 @@
 /* ==========================================================================
-   Sarness Obsidian — design tokens and base styles
-   Deep graphite surfaces, restrained violet accents, lavender selection,
-   clean off-white type. Motion is short (120–240ms) and GPU-friendly
+   Sarness — design tokens and base styles
+   Graphite on off-white with one teal accent; light-first, dark optional. Motion is short (120–240ms) and GPU-friendly
    (opacity / transform only).
    ========================================================================== */
 
+/* Light is the default identity. Graphite text, off-white surfaces and a single
+   petrol-teal accent. Dark mode is a designed counterpart, not an inversion. */
+:root,
+:root[data-theme='light'] {
+  --bg-0: #fbfbfa;
+  --bg-1: #f5f5f3;
+  --bg-2: #efefec;
+  --bg-3: #e7e7e3;
+  --bg-4: #dddcd7;
+  --bg-5: #cfcec8;
+  --glass: rgba(251, 251, 250, 0.82);
+  --glass-strong: rgba(251, 251, 250, 0.95);
+  --scrim: rgba(28, 29, 31, 0.38);
+  --fg-rgb: 28, 29, 31;
+  --accent-rgb: 14, 124, 123;
+
+  --line-0: rgba(28, 29, 31, 0.07);
+  --line-1: rgba(28, 29, 31, 0.12);
+  --line-2: rgba(28, 29, 31, 0.24);
+
+  --text-0: #1c1d1f;
+  --text-1: #3a3c40;
+  --text-2: #62656b;
+  --text-3: #858890;
+  --text-inv: #ffffff;
+
+  --accent: #0e7c7b;
+  --accent-hi: #0b6665;
+  --accent-lo: #0a5251;
+  --lavender: #0b6665;
+  --accent-ghost: rgba(14, 124, 123, 0.09);
+  --select-bg: rgba(14, 124, 123, 0.1);
+  --select-line: rgba(14, 124, 123, 0.4);
+  --focus: 0 0 0 2px #fbfbfa, 0 0 0 4px rgba(14, 124, 123, 0.75);
+  --tooltip-bg: rgba(28, 29, 31, 0.96);
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  --bg-0: #121315;
+  --bg-1: #17181b;
+  --bg-2: #1d1e22;
+  --bg-3: #25272b;
+  --bg-4: #2e3035;
+  --bg-5: #3a3c42;
+  --glass: rgba(23, 24, 27, 0.82);
+  --glass-strong: rgba(18, 19, 21, 0.95);
+  --scrim: rgba(0, 0, 0, 0.6);
+  --fg-rgb: 236, 236, 232;
+  --accent-rgb: 63, 191, 181;
+
+  --line-0: rgba(236, 236, 232, 0.07);
+  --line-1: rgba(236, 236, 232, 0.12);
+  --line-2: rgba(236, 236, 232, 0.24);
+
+  --text-0: #ececE8;
+  --text-1: #cfd0cc;
+  --text-2: #9b9da3;
+  --text-3: #6f727a;
+  --text-inv: #101112;
+
+  --accent: #3fbfb5;
+  --accent-hi: #5fd3c9;
+  --accent-lo: #2a9a91;
+  --lavender: #7fe0d6;
+  --accent-ghost: rgba(63, 191, 181, 0.12);
+  --select-bg: rgba(63, 191, 181, 0.14);
+  --select-line: rgba(63, 191, 181, 0.45);
+  --focus: 0 0 0 2px #121315, 0 0 0 4px rgba(95, 211, 201, 0.8);
+  --tooltip-bg: rgba(46, 48, 53, 0.97);
+  color-scheme: dark;
+}
+
 :root {
-  /* Surfaces (darkest → raised) */
-  --bg-0: #08080a;
-  --bg-1: #0d0d10;
-  --bg-2: #121216;
-  --bg-3: #17171c;
-  --bg-4: #1e1e24;
-  --bg-5: #26262d;
-  --glass: rgba(18, 18, 23, 0.74);
-  --glass-strong: rgba(14, 14, 18, 0.9);
-  --scrim: rgba(4, 4, 6, 0.62);
-
-  /* Lines */
-  --line-0: rgba(255, 255, 255, 0.045);
-  --line-1: rgba(255, 255, 255, 0.075);
-  --line-2: rgba(255, 255, 255, 0.12);
-
-  /* Text */
-  --text-0: #f3f2f7;
-  --text-1: #cfcdd8;
-  --text-2: #9895a6;
-  --text-3: #686574;
-  --text-inv: #0c0b10;
-
-  /* Accent — violet / lavender (no pink) */
-  --accent: #8b5cf6;
-  --accent-hi: #a78bfa;
-  --accent-lo: #6d28d9;
-  --lavender: #c9bdfd;
-  --accent-ghost: rgba(139, 92, 246, 0.12);
-  --select-bg: rgba(167, 139, 250, 0.13);
-  --select-line: rgba(201, 189, 253, 0.34);
-  --focus: 0 0 0 2px rgba(167, 139, 250, 0.55);
-
   /* Status */
   --ok: #5fd39b;
   --ok-bg: rgba(95, 211, 155, 0.12);
@@ -58,10 +97,10 @@
   --r-full: 999px;
 
   /* Elevation */
-  --shadow-1: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 1px 2px rgba(0, 0, 0, 0.4);
-  --shadow-2: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 10px 30px rgba(0, 0, 0, 0.45);
-  --shadow-3: 0 1px 0 rgba(255, 255, 255, 0.05) inset, 0 24px 64px rgba(0, 0, 0, 0.6);
-  --glow: 0 0 0 1px rgba(167, 139, 250, 0.35), 0 0 24px rgba(139, 92, 246, 0.22);
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-2: 0 10px 30px rgba(0, 0, 0, 0.45);
+  --shadow-3: 0 24px 64px rgba(0, 0, 0, 0.6);
+  --glow: 0 0 0 1px rgba(var(--fg-rgb), 0.3);
 
   /* Motion */
   --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
@@ -86,7 +125,6 @@
   --sidebar-w-collapsed: 60px;
   --statusbar-h: 28px;
 
-  color-scheme: dark;
 }
 
 *,
@@ -117,7 +155,7 @@ body {
 }
 
 ::selection {
-  background: rgba(167, 139, 250, 0.32);
+  background: rgba(var(--accent-rgb), 0.32);
   color: var(--text-0);
 }
 
@@ -168,17 +206,17 @@ code, pre, kbd, .mono {
 /* Scrollbars: thin and quiet */
 * {
   scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
+  scrollbar-color: rgba(var(--fg-rgb), 0.2) transparent;
 }
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.09);
+  background: rgba(var(--fg-rgb), 0.15);
   border-radius: 10px;
   border: 3px solid transparent;
   background-clip: padding-box;
 }
-::-webkit-scrollbar-thumb:hover { background-color: rgba(255, 255, 255, 0.18); }
+::-webkit-scrollbar-thumb:hover { background-color: rgba(var(--fg-rgb), 0.3); }
 
 /* Utility */
 .muted { color: var(--text-2); }
@@ -218,9 +256,9 @@ code, pre, kbd, .mono {
   100% { background-position: 400px 0; }
 }
 @keyframes pulse-ring {
-  0% { box-shadow: 0 0 0 0 rgba(167, 139, 250, 0.45); }
-  70% { box-shadow: 0 0 0 8px rgba(167, 139, 250, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(167, 139, 250, 0); }
+  0% { box-shadow: 0 0 0 0 rgba(var(--accent-rgb), 0.45); }
+  70% { box-shadow: 0 0 0 8px rgba(var(--accent-rgb), 0); }
+  100% { box-shadow: 0 0 0 0 rgba(var(--accent-rgb), 0); }
 }
 
 .skeleton {
@@ -248,9 +286,9 @@ code, pre, kbd, .mono {
   max-width: 280px;
   padding: 5px 9px;
   border-radius: var(--r-sm);
-  background: rgba(30, 29, 37, 0.96);
+  background: var(--tooltip-bg);
   border: 1px solid var(--line-2);
-  color: var(--text-0);
+  color: #ffffff;
   font-size: var(--fs-xs);
   font-weight: 500;
   line-height: 1.4;

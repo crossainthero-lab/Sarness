@@ -20,3 +20,11 @@ describe('format', () => {
     expect(Math.max(w2, h2)).toBeLessThanOrEqual(1536);
   });
 });
+
+import { duration as _duration } from './format';
+describe('duration carry', () => {
+  it('never prints 60 seconds', () => {
+    expect(_duration(179.7)).toBe('3m 0s');
+    expect(_duration(381)).toBe('6m 21s');
+  });
+});

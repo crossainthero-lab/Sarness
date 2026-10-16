@@ -28,6 +28,8 @@ from typing import Any
 
 import httpx
 
+from ..workflow.graph import clamp_seed
+
 log = logging.getLogger("sarness.gateway")
 
 FAMILY = "gateway"
@@ -155,7 +157,7 @@ class Gateway:
                                         "width": int(simple["width"]), "height": int(simple["height"]),
                                         "steps": int(simple["steps"])}
                 if seed >= 0:
-                    body["seed"] = seed + i
+                    body["seed"] = clamp_seed(seed + i)
                 if kind == "video":
                     body["frames"] = int(simple.get("frames") or 33)
                 if upload_id:

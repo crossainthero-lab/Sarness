@@ -56,6 +56,6 @@
   p { font-size: var(--fs-sm); color: var(--text-2); overflow-wrap: anywhere; max-height: 120px; overflow: auto; }
   .act { border: 0; background: var(--accent-ghost); color: var(--lavender); border-radius: var(--r-sm); padding: 4px 9px; font-size: var(--fs-sm); font-weight: 600; cursor: pointer; }
   .x { border: 0; background: none; color: var(--text-3); cursor: pointer; padding: 2px; border-radius: 5px; display: grid; }
-  .x:hover { color: var(--text-0); background: rgba(255, 255, 255, 0.06); }
+  .x:hover { color: var(--text-0); background: rgba(var(--fg-rgb), 0.06); }
   .x :global(svg) { width: 14px; height: 14px; }
 </style>

@@ -30,7 +30,7 @@
   }
   .sm { height: 28px; padding: 0 9px; border-radius: var(--r-sm); }
   .input:hover { border-color: var(--line-2); }
-  .input:focus-within { border-color: var(--select-line); box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.14); background: var(--bg-0); }
+  .input:focus-within { border-color: var(--select-line); box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.14); background: var(--bg-0); }
   input {
     flex: 1;
     min-width: 0;

@@ -37,11 +37,11 @@
   .sm :global(svg) { width: 14px; height: 14px; }
   .lg { width: 36px; height: 36px; }
   .lg :global(svg) { width: 18px; height: 18px; }
-  .ib:hover:not(:disabled) { background: rgba(255, 255, 255, 0.06); color: var(--text-0); }
+  .ib:hover:not(:disabled) { background: rgba(var(--fg-rgb), 0.06); color: var(--text-0); }
   .ib:active:not(:disabled) { transform: scale(0.94); }
   .ib:disabled { opacity: 0.35; cursor: default; }
   .active { background: var(--select-bg); color: var(--lavender); }
-  .active:hover:not(:disabled) { background: rgba(167, 139, 250, 0.2); color: var(--lavender); }
+  .active:hover:not(:disabled) { background: rgba(var(--accent-rgb), 0.2); color: var(--lavender); }
   .danger:hover:not(:disabled) { color: var(--err); background: var(--err-bg); }
   .accent { color: var(--accent-hi); }
 </style>

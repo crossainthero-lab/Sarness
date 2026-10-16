@@ -7,6 +7,7 @@
   import { activeJobs, submitJob } from '../stores/jobs.svelte';
   import { byCategory, modelById, models } from '../stores/models.svelte';
   import { persisted, prefs, persistPrefs, savePersisted } from '../stores/prefs.svelte';
+  import { paneKey } from '../stores/panes.svelte';
   import { destination } from '../stores/projects.svelte';
   import { toast, toastError } from '../stores/toast.svelte';
   import StudioShell from '../studio/StudioShell.svelte';
@@ -27,9 +28,13 @@
   import Toggle from '../ui/Toggle.svelte';
   import { duration } from '../util/format';
 
-  let { active }: { active: boolean } = $props();
+  import { randomSeed, seedFor } from '../util/seed';
+  let { active, paneId }: { active: boolean; paneId: string } = $props();
+  const K = (n: string) => paneKey(paneId, n);
+  const modeState = persisted(K('video.mode'), { mode: 'simple' as 'simple' | 'advanced' });
+  $effect(() => savePersisted(K('video.mode'), $state.snapshot(modeState)));
 
-  const p = persisted('video.simple', {
+  const p = persisted(K('video.simple'), {
     model: null as string | null,
     mode: 't2v' as 't2v' | 'i2v',
     prompt: '',
@@ -47,11 +52,11 @@
     memory_mode: 'auto',
     format: 'mp4',
   });
-  const adv = persisted('video.workflow', { graph: null as Workflow | null });
-  $effect(() => savePersisted('video.simple', $state.snapshot(p)));
-  $effect(() => savePersisted('video.workflow', $state.snapshot(adv)));
+  const adv = persisted(K('video.workflow'), { graph: null as Workflow | null });
+  $effect(() => savePersisted(K('video.simple'), $state.snapshot(p)));
+  $effect(() => savePersisted(K('video.workflow'), $state.snapshot(adv)));
 
-  const history = createHistory('video');
+  const history = createHistory('video', paneId);
   let promptEl: HTMLTextAreaElement | null = $state(null);
   let submitting = $state(false);
 
@@ -112,7 +117,7 @@
       fps: p.fps,
       steps: p.steps,
       guidance: p.guidance,
-      seed: p.random_seed ? -1 : p.seed,
+      seed: seedFor(p.random_seed, p.seed),
       flow_shift: p.flow_shift,
       start_image: p.mode === 'i2v' ? p.start_image : null,
       end_image: p.mode === 'i2v' && caps.end_frame ? p.end_image : null,
@@ -126,7 +131,7 @@
     submitting = true;
     try {
       const j = await job;
-      history.state.follow.add(j.id);
+      history.track(j.id);
     } catch (e) {
       toastError(e, 'Could not start video generation');
     } finally {
@@ -145,7 +150,9 @@
   }
 
   function rerun(g: Generation, exact: boolean) {
-    run(api.post<Job>(`/v1/generations/${g.id}/rerun`, { new_seed: !exact }));
+    const simple = g.simple as Record<string, unknown> | null;
+    if (!exact && simple) run(submitJob({ kind: 'video', simple: { ...simple, seed: randomSeed() }, ...destination() }));
+    else run(api.post<Job>(`/v1/generations/${g.id}/rerun`, { new_seed: !exact }));
   }
 
   async function edit(g: Generation) {
@@ -166,7 +173,7 @@
       const full = await api.get<Generation>(`/v1/generations/${g.id}`);
       if (full.workflow) {
         adv.graph = full.workflow;
-        prefs.videoMode = 'advanced';
+        modeState.mode = 'advanced';
         persistPrefs();
         return;
       }
@@ -176,7 +183,7 @@
   }
 
   async function setMode(m: 'simple' | 'advanced') {
-    if (m === prefs.videoMode) return;
+    if (m === modeState.mode) return;
     if (m === 'advanced') {
       adv.graph = await switchToAdvanced('video', adv.graph, simpleParams());
     } else {
@@ -200,12 +207,12 @@
         p.mode = x.start_image ? 'i2v' : 't2v';
       }
     }
-    prefs.videoMode = m;
+    modeState.mode = m;
     persistPrefs();
   }
 </script>
 
-<StudioShell kind="video" title="Videos" mode={prefs.videoMode} {history} {active}
+<StudioShell {paneId} kind="video" title="Videos" mode={modeState.mode} {history} {active}
   onmode={setMode} onnew={() => { p.prompt = ''; p.start_image = null; p.end_image = null; history.state.index = 0; promptEl?.focus(); }}
   onrerun={rerun} onedit={edit}>
   {#snippet controls()}
@@ -252,7 +259,7 @@
         <Field label="Seed">
           <div class="row">
             <TextInput bind:value={p.seed} type="number" disabled={p.random_seed} mono size="sm" />
-            <IconButton label="Random seed now" onclick={() => { p.seed = Math.floor(Math.random() * 2 ** 32); p.random_seed = false; }}><Dices /></IconButton>
+            <IconButton label="Random seed now" onclick={() => { p.seed = randomSeed(); p.random_seed = false; }}><Dices /></IconButton>
           </div>
         </Field>
         <Toggle bind:checked={p.random_seed} label="New random seed each run" />
@@ -280,7 +287,7 @@
 
   {#snippet advanced()}
     <WorkflowEditor kind="video" bind:graph={adv.graph} {active}
-      onrun={async (g) => { const j = await submitJob({ kind: 'video', workflow: g, ...destination() }); history.state.follow.add(j.id); return j; }}
+      onrun={async (g) => { const j = await submitJob({ kind: 'video', workflow: g, ...destination() }); history.track(j.id); return j; }}
       onrebuild={async () => { adv.graph = await switchToAdvanced('video', null, simpleParams()); }} />
   {/snippet}
 </StudioShell>

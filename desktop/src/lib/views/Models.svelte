@@ -372,14 +372,14 @@
   .warn { display: flex; align-items: flex-start; gap: 6px; color: var(--warn); font-size: var(--fs-sm); }
   .warn :global(svg) { width: 14px; height: 14px; flex-shrink: 0; margin-top: 2px; }
   .acts { display: flex; align-items: center; gap: 4px; }
-  .hw { display: flex; align-items: center; gap: 14px; padding: 14px 16px; margin-bottom: 16px; background: radial-gradient(100% 160% at 0% 0%, rgba(139, 92, 246, 0.14), transparent 60%), var(--bg-2); }
+  .hw { display: flex; align-items: center; gap: 14px; padding: 14px 16px; margin-bottom: 16px; background: radial-gradient(100% 160% at 0% 0%, rgba(var(--accent-rgb), 0.14), transparent 60%), var(--bg-2); }
   .hw > :global(svg) { width: 22px; height: 22px; color: var(--lavender); }
   .hw p { font-size: var(--fs-sm); margin-top: 2px; }
   .filters { margin-bottom: 14px; }
   .cat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 12px; }
   .entry { display: flex; flex-direction: column; gap: 9px; padding: 16px; transition: border-color var(--t-1), transform var(--t-2) var(--ease); }
   .entry:hover { border-color: var(--line-2); }
-  .entry.rec { border-color: rgba(167, 139, 250, 0.3); }
+  .entry.rec { border-color: rgba(var(--accent-rgb), 0.3); }
   .eh { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
   .ecat { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-3); font-weight: 700; margin-right: auto; }
   .desc { font-size: var(--fs-sm); color: var(--text-1); line-height: 1.55; }
@@ -399,7 +399,7 @@
   .hfsplit { display: grid; grid-template-columns: minmax(280px, 380px) 1fr; gap: 16px; margin-top: 14px; min-height: 400px; }
   .hflist { display: flex; flex-direction: column; gap: 3px; max-height: calc(100vh - 260px); overflow-y: auto; }
   .hfitem { display: flex; flex-direction: column; gap: 2px; padding: 9px 11px; border-radius: var(--r-md); border: 1px solid transparent; background: none; text-align: left; color: var(--text-1); cursor: pointer; }
-  .hfitem:hover { background: rgba(255, 255, 255, 0.04); }
+  .hfitem:hover { background: rgba(var(--fg-rgb), 0.04); }
   .hfitem.on { background: var(--select-bg); border-color: var(--select-line); }
   .hfname { font-weight: 600; color: var(--text-0); font-size: var(--fs-sm); }
   .hfdetail h3 { margin-bottom: 8px; font-family: var(--font-mono); font-size: var(--fs-md); }

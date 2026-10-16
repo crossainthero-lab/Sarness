@@ -45,14 +45,14 @@
   .block { width: 100%; }
 
   .primary {
-    background: linear-gradient(180deg, #9a6cff, #7c4ff0);
-    color: white;
-    border-color: rgba(255, 255, 255, 0.08);
-    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.22) inset, 0 6px 18px rgba(124, 58, 237, 0.28);
+    background: var(--accent);
+    color: var(--text-inv);
+    border-color: rgba(var(--fg-rgb), 0.08);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
   }
   .primary:hover:not(:disabled) {
-    background: linear-gradient(180deg, #a57bff, #8657f5);
-    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.25) inset, 0 8px 24px rgba(124, 58, 237, 0.38);
+    background: var(--accent-hi);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
   }
   .secondary {
     background: var(--bg-4);
@@ -62,9 +62,9 @@
   }
   .secondary:hover:not(:disabled) { background: var(--bg-5); border-color: var(--line-2); }
   .ghost { background: transparent; color: var(--text-1); }
-  .ghost:hover:not(:disabled) { background: rgba(255, 255, 255, 0.05); color: var(--text-0); }
+  .ghost:hover:not(:disabled) { background: rgba(var(--fg-rgb), 0.05); color: var(--text-0); }
   .subtle { background: var(--accent-ghost); color: var(--lavender); }
-  .subtle:hover:not(:disabled) { background: rgba(139, 92, 246, 0.2); }
+  .subtle:hover:not(:disabled) { background: rgba(var(--accent-rgb), 0.2); }
   .danger { background: var(--err-bg); color: var(--err); border-color: rgba(244, 113, 116, 0.2); }
   .danger:hover:not(:disabled) { background: rgba(244, 113, 116, 0.2); }
 </style>

@@ -24,7 +24,7 @@
     height: 20px;
     flex-shrink: 0;
     border-radius: 999px;
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(var(--fg-rgb), 0.1);
     transition: background var(--t-2) var(--ease);
   }
   .knob {
@@ -34,11 +34,11 @@
     width: 16px;
     height: 16px;
     border-radius: 50%;
-    background: #e9e7f0;
+    background: var(--text-0);
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
     transition: transform var(--t-2) var(--ease);
   }
   input:checked + .track { background: var(--accent); }
-  input:checked + .track .knob { transform: translateX(14px); background: white; }
+  input:checked + .track .knob { transform: translateX(14px); background: var(--text-inv); }
   input:focus-visible + .track { box-shadow: var(--focus); }
 </style>

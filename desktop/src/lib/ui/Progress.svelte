@@ -17,7 +17,7 @@
     width: 100%;
     overflow: hidden;
     border-radius: var(--r-full);
-    background: rgba(255, 255, 255, 0.06);
+    background: rgba(var(--fg-rgb), 0.06);
   }
   .fill {
     position: absolute;

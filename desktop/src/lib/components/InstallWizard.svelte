@@ -92,7 +92,7 @@
   code { color: var(--lavender); }
   .opt { display: flex; align-items: center; gap: 12px; }
   .lbl { font-size: var(--fs-sm); color: var(--text-1); font-weight: 550; }
-  .log { height: 260px; overflow-y: auto; padding: 10px 12px; border-radius: var(--r-md); background: #060608; border: 1px solid var(--line-1); font-size: 11.5px; line-height: 1.55; color: var(--text-1); }
+  .log { height: 260px; overflow-y: auto; padding: 10px 12px; border-radius: var(--r-md); background: var(--bg-0); border: 1px solid var(--line-1); font-size: 11.5px; line-height: 1.55; color: var(--text-1); }
   .ln { white-space: pre-wrap; overflow-wrap: anywhere; }
   .ln.preflight { color: var(--info); }
   .ln.done { color: var(--ok); }

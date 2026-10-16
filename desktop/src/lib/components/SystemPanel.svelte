@@ -78,7 +78,7 @@
     border: 1px solid var(--line-1);
     min-width: 0;
   }
-  .gpu { background: radial-gradient(120% 140% at 0% 0%, rgba(139, 92, 246, 0.16), transparent 60%), linear-gradient(180deg, var(--bg-3), var(--bg-2)); }
+  .gpu { background: radial-gradient(120% 140% at 0% 0%, rgba(var(--accent-rgb), 0.16), transparent 60%), linear-gradient(180deg, var(--bg-3), var(--bg-2)); }
   .wide { grid-column: 1 / -1; }
   .th { display: flex; align-items: center; gap: 7px; font-size: var(--fs-xs); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-3); }
   .th :global(svg) { width: 13px; height: 13px; color: var(--lavender); }

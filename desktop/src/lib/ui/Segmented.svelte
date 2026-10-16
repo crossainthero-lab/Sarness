@@ -44,7 +44,7 @@
   }
   .sm button { height: 22px; padding: 0 8px; font-size: var(--fs-xs); }
   button :global(svg) { width: 14px; height: 14px; }
-  button:hover:not(.on):not(:disabled) { color: var(--text-0); background: rgba(255, 255, 255, 0.04); }
-  button.on { background: var(--bg-5); color: var(--text-0); box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06) inset, 0 1px 3px rgba(0, 0, 0, 0.4); }
+  button:hover:not(.on):not(:disabled) { color: var(--text-0); background: rgba(var(--fg-rgb), 0.04); }
+  button.on { background: var(--bg-5); color: var(--text-0); box-shadow: 0 1px 0 rgba(var(--fg-rgb), 0.06) inset, 0 1px 3px rgba(0, 0, 0, 0.4); }
   button:disabled { opacity: 0.35; cursor: default; }
 </style>

@@ -19,8 +19,9 @@ export function duration(s: number | null | undefined): string {
   if (s === null || s === undefined) return '—';
   if (s < 1) return `${Math.round(s * 1000)} ms`;
   if (s < 60) return `${s.toFixed(s < 10 ? 1 : 0)} s`;
-  const m = Math.floor(s / 60);
-  const r = Math.round(s % 60);
+  const total = Math.round(s);
+  const m = Math.floor(total / 60);
+  const r = total % 60;
   if (m < 60) return `${m}m ${r}s`;
   return `${Math.floor(m / 60)}h ${m % 60}m`;
 }

@@ -74,6 +74,7 @@
       </div>
       {#if m.status === 'error'}<p class="errtxt"><TriangleAlert />{stats.error ?? 'Generation failed'}</p>{/if}
       {#if m.status === 'stopped'}<p class="faint small">Stopped</p>{/if}
+      {#if m.status === 'partial' && !streaming}<p class="errtxt"><TriangleAlert />Reply incomplete: the connection was interrupted. Use Regenerate to try again.</p>{/if}
     {/if}
 
     {#if !streaming && !editing}
@@ -111,8 +112,8 @@
   .bubble {
     padding: 10px 14px;
     border-radius: 16px 16px 4px 16px;
-    background: linear-gradient(180deg, rgba(139, 92, 246, 0.2), rgba(139, 92, 246, 0.13));
-    border: 1px solid rgba(167, 139, 250, 0.22);
+    background: linear-gradient(180deg, rgba(var(--accent-rgb), 0.2), rgba(var(--accent-rgb), 0.13));
+    border: 1px solid rgba(var(--accent-rgb), 0.22);
     color: var(--text-0);
     white-space: pre-wrap;
     overflow-wrap: anywhere;
@@ -131,24 +132,24 @@
   .md :global(li) { margin: 0.25em 0; }
   .md :global(a) { color: var(--accent-hi); }
   .md :global(blockquote) { margin: 0 0 0.8em; padding: 2px 14px; border-left: 3px solid var(--accent); color: var(--text-1); }
-  .md :global(code:not(.hljs)) { padding: 1px 6px; border-radius: 5px; background: rgba(255, 255, 255, 0.07); font-size: 0.88em; }
+  .md :global(code:not(.hljs)) { padding: 1px 6px; border-radius: 5px; background: rgba(var(--fg-rgb), 0.07); font-size: 0.88em; }
   .md :global(table) { border-collapse: collapse; margin: 0 0 0.9em; font-size: 0.95em; }
   .md :global(th), .md :global(td) { border: 1px solid var(--line-1); padding: 6px 10px; text-align: left; }
   .md :global(th) { background: var(--bg-3); }
   .md :global(hr) { border: 0; border-top: 1px solid var(--line-1); margin: 1.2em 0; }
-  .md :global(.codeblock) { margin: 0.4em 0 1em; border-radius: var(--r-md); overflow: hidden; border: 1px solid var(--line-1); background: #0b0b0e; }
+  .md :global(.codeblock) { margin: 0.4em 0 1em; border-radius: var(--r-md); overflow: hidden; border: 1px solid var(--line-1); background: var(--bg-1); }
   .md :global(.cb-head) { display: flex; justify-content: space-between; align-items: center; padding: 5px 10px 5px 14px; background: var(--bg-3); font-size: 11.5px; color: var(--text-2); font-family: var(--font-mono); }
-  .md :global(.cb-copy) { border: 0; background: rgba(255, 255, 255, 0.06); color: var(--text-1); border-radius: 6px; padding: 3px 9px; font-size: 11px; cursor: pointer; }
-  .md :global(.cb-copy:hover) { background: rgba(255, 255, 255, 0.12); color: var(--text-0); }
+  .md :global(.cb-copy) { border: 0; background: rgba(var(--fg-rgb), 0.06); color: var(--text-1); border-radius: 6px; padding: 3px 9px; font-size: 11px; cursor: pointer; }
+  .md :global(.cb-copy:hover) { background: rgba(var(--fg-rgb), 0.12); color: var(--text-0); }
   .md :global(pre) { margin: 0; padding: 12px 14px; overflow-x: auto; font-size: 12.8px; line-height: 1.6; }
-  .md :global(.hljs-keyword), .md :global(.hljs-selector-tag), .md :global(.hljs-built_in) { color: #c4b5fd; }
-  .md :global(.hljs-string), .md :global(.hljs-attr) { color: #a5e3c4; }
-  .md :global(.hljs-number), .md :global(.hljs-literal) { color: #f5c27a; }
-  .md :global(.hljs-comment) { color: #6b6878; font-style: italic; }
-  .md :global(.hljs-title), .md :global(.hljs-function) { color: #8ec5fc; }
-  .md :global(.hljs-type), .md :global(.hljs-class) { color: #f0a7a7; }
-  .md :global(.hljs-variable), .md :global(.hljs-params) { color: #e5e3ec; }
-  .md :global(.hljs-meta), .md :global(.hljs-tag) { color: #9ca3af; }
+  .md :global(.hljs-keyword), .md :global(.hljs-selector-tag), .md :global(.hljs-built_in) { color: var(--text-0); }
+  .md :global(.hljs-string), .md :global(.hljs-attr) { color: var(--text-1); }
+  .md :global(.hljs-number), .md :global(.hljs-literal) { color: var(--text-1); }
+  .md :global(.hljs-comment) { color: var(--text-3); font-style: italic; }
+  .md :global(.hljs-title), .md :global(.hljs-function) { color: var(--text-0); }
+  .md :global(.hljs-type), .md :global(.hljs-class) { color: var(--text-1); }
+  .md :global(.hljs-variable), .md :global(.hljs-params) { color: var(--text-1); }
+  .md :global(.hljs-meta), .md :global(.hljs-tag) { color: var(--text-2); }
   .md :global(.hljs-addition) { color: var(--ok); }
   .md :global(.hljs-deletion) { color: var(--err); }
   .caret { display: inline-block; width: 8px; height: 1.05em; margin-left: 2px; vertical-align: text-bottom; border-radius: 2px; background: var(--lavender); animation: blink 1s steps(2) infinite; }

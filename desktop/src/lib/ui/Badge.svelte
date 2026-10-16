@@ -17,7 +17,7 @@
     font-weight: 600;
     letter-spacing: 0.01em;
     white-space: nowrap;
-    background: rgba(255, 255, 255, 0.06);
+    background: rgba(var(--fg-rgb), 0.06);
     color: var(--text-1);
   }
   i { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
