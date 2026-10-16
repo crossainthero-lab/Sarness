@@ -24,6 +24,8 @@ dist/      build output (.deb, .rpm, .AppImage, engine bundle, SHA256SUMS)
 Pre-built Linux installers (`.deb`, `.rpm`, `.AppImage`) and the engine bundle are on the
 [Releases page](https://github.com/crossainthero-lab/Sarness/releases).
 
+**Windows (WSL2, experimental):** see [docs/WINDOWS-WSL2.md](docs/WINDOWS-WSL2.md) to run the Linux `.deb` with WSLg. This route has **not yet been validated**, and no native Windows installer is included in v0.1.0.
+
 **Server** (Ubuntu, NVIDIA driver ≥ 570): either use the desktop's guided SSH
 installer, or copy `dist/sarness-engine.tar.gz` + `scripts/install-engine.sh` and run
 
