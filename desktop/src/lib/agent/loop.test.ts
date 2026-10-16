@@ -197,16 +197,28 @@ describe('agent loop', () => {
 });
 
 describe('agent loop safety nets', () => {
-  it('stops an agent that repeats the same call without progress, keeping the transcript valid', async () => {
-    const same = () => turn('', call(`c${Math.random()}`, 'read_file', { path: 'a' }));
-    const h = harness(Array.from({ length: 10 }, same), () => ok('same'));
+  it('stops an agent that keeps failing the same call, keeping the transcript valid', async () => {
+    const same = () => turn('', call(`c${Math.random()}`, 'edit_file', { path: 'a', old_string: 'x', new_string: 'y' }));
+    const h = harness(Array.from({ length: 10 }, same), () => ({ status: 'error', content: 'old_string was not found', ui: null }));
     const msgs = base();
     const out = await runLoop(msgs, h.deps, new AbortController().signal);
     expect(out.status).toBe('blocked');
-    expect((out as any).reason).toContain('repeated the same read_file call');
+    expect((out as any).reason).toContain('repeated the same edit_file call');
     expect(h.toolCalls).toHaveLength(3);
     const ids = msgs.flatMap((m) => (m.role === 'assistant' && m.tool_calls ? m.tool_calls.map((c) => c.id) : []));
     expect(msgs.filter((m) => m.role === 'tool').map((m: any) => m.tool_call_id)).toEqual(ids);
+  });
+  it('also stops an identical successful call made a great many times', async () => {
+    const same = () => turn('', call(`c${Math.random()}`, 'read_file', { path: 'a' }));
+    const h = harness(Array.from({ length: 12 }, same), () => ok('same'));
+    const out = await runLoop(base(), h.deps, new AbortController().signal);
+    expect(out.status).toBe('blocked');
+    expect(h.toolCalls).toHaveLength(6);
+  });
+  it('re-running a passing test to double-check is not "going in circles"', async () => {
+    const run = () => turn('', call(`c${Math.random()}`, 'run_command', { command: 'node --test' }));
+    const h = harness([run(), run(), run(), run(), run(), turn('Verified: all tests pass.')], () => cmd('node --test', 0, 'pass 3'));
+    expect(await runLoop(base(), h.deps, new AbortController().signal)).toEqual({ status: 'completed', final: 'Verified: all tests pass.' });
   });
   it('asks once for smaller steps when a reply is cut off by the length limit', async () => {
     const cut: ModelTurn = { content: 'partial…', reasoning: '', toolCalls: [], finish: 'length' };

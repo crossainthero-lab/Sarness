@@ -114,6 +114,7 @@ export async function runLoop(messages: AgentMessage[], deps: LoopDeps, signal: 
   let nudgedFailing = false;
   let checkFailing = false; // the most recent build/test command exited non-zero
   const recent: string[] = []; // signatures of recent tool calls, to catch an agent going in circles
+  const failStreak = new Map<string, number>(); // consecutive failures per identical call
   let unverifiedEdits = false; // files changed with no later successful command
   let turnSeq = 0;
 
@@ -219,9 +220,12 @@ export async function runLoop(messages: AgentMessage[], deps: LoopDeps, signal: 
       }
       const sig = `${name}:${JSON.stringify(args)}`;
       recent.push(sig);
-      if (recent.length > 8) recent.shift();
-      if (recent.filter((x) => x === sig).length >= 4) {
-        const msg = `The agent repeated the same ${name} call 4 times without making progress.`;
+      if (recent.length > 12) recent.shift();
+      // Going in circles = the same call failing again and again, or the same call a great many times.
+      // (Re-running a passing test to double-check is fine.)
+      const same = recent.filter((x) => x === sig).length;
+      if ((failStreak.get(sig) ?? 0) >= 3 || same >= 7) {
+        const msg = `The agent repeated the same ${name} call ${same} times without making progress.`;
         deps.emit({ type: 'tool_result', callId: call.id, status: 'denied', content: msg, ui: null });
         messages.push({ role: 'tool', tool_call_id: call.id, content: msg });
         for (const c of turn.toolCalls as ChatToolCall[]) if (!answered.has(c.id) && c.id !== call.id) messages.push({ role: 'tool', tool_call_id: c.id, content: 'Skipped.' });
@@ -240,6 +244,7 @@ export async function runLoop(messages: AgentMessage[], deps: LoopDeps, signal: 
       }
       if (res.status === 'ok' || res.status === 'error') {
         const failed = res.status === 'error' || (res.ui?.kind === 'command' && (res.ui.exit_code !== 0 || res.ui.timed_out) && !res.ui.cancelled);
+        failStreak.set(sig, failed ? (failStreak.get(sig) ?? 0) + 1 : 0);
         deps.emit({ type: 'tool_result', callId: call.id, status: res.ui?.cancelled ? 'cancelled' : failed ? 'failed' : 'done', content: res.content, ui: res.ui });
         if (res.status === 'ok' && WRITE_TOOLS.has(name)) unverifiedEdits = true;
         if (res.status === 'ok' && (name === 'run_command' || name === 'start_process') && res.ui?.exit_code === 0) unverifiedEdits = false;
