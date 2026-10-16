@@ -167,11 +167,28 @@
       await streamChat(`/v1/chat/conversations/${c.id}/generate`, { model_ref: modelRef, ...body }, (ev: ChatEvent) => onEvent(c.id, ev), abort.signal);
     } catch (e) {
       toastError(e, 'Chat failed');
+      void reconcile(c.id);
     } finally {
       streamingId = null;
       statusText = '';
       abort = null;
       refreshList();
+    }
+  }
+
+  /** After an interrupted stream, reload the stored conversation once the engine is reachable again. */
+  async function reconcile(id: string) {
+    for (let i = 0; i < 30; i++) {
+      await new Promise((r) => setTimeout(r, 2000));
+      if (conv?.id !== id || streamingId) return;
+      try {
+        const c = await api.get<Conversation>(`/v1/chat/conversations/${id}`);
+        msgs = c.messages ?? [];
+        conv = c;
+        return;
+      } catch {
+        /* still offline: try again */
+      }
     }
   }
 

@@ -74,6 +74,7 @@
       </div>
       {#if m.status === 'error'}<p class="errtxt"><TriangleAlert />{stats.error ?? 'Generation failed'}</p>{/if}
       {#if m.status === 'stopped'}<p class="faint small">Stopped</p>{/if}
+      {#if m.status === 'partial' && !streaming}<p class="errtxt"><TriangleAlert />Reply incomplete: the connection was interrupted. Use Regenerate to try again.</p>{/if}
     {/if}
 
     {#if !streaming && !editing}

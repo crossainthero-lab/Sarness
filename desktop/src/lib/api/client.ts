@@ -108,6 +108,8 @@ export async function streamChat(path: string, body: unknown, onEvent: (e: ChatE
   const reader = res.body.getReader();
   const decoder = new TextDecoder();
   let buf = '';
+  let finished = false; // a terminal `done`/`error` event arrived
+  const lost = () => new ApiError(0, 'Connection to the engine was interrupted while the model was replying. The reply may be incomplete.');
   try {
     for (;;) {
       const { value, done } = await reader.read();
@@ -120,7 +122,9 @@ export async function streamChat(path: string, body: unknown, onEvent: (e: ChatE
         for (const line of chunk.split('\n')) {
           if (line.startsWith('data:')) {
             try {
-              onEvent(JSON.parse(line.slice(5).trim()));
+              const ev = JSON.parse(line.slice(5).trim());
+              if (ev?.type === 'done' || ev?.type === 'error') finished = true;
+              onEvent(ev);
             } catch {
               /* malformed line */
             }
@@ -129,6 +133,8 @@ export async function streamChat(path: string, body: unknown, onEvent: (e: ChatE
       }
     }
   } catch (e) {
-    if ((e as Error).name !== 'AbortError') throw e;
+    if ((e as Error).name === 'AbortError') return;
+    throw lost();
   }
+  if (!finished && !signal?.aborted) throw lost();
 }
