@@ -107,6 +107,31 @@ pub fn write_file(ws: &Workspace, path: &str, content: &str) -> Result<ToolOut, 
     ))
 }
 
+/// Helps the model correct a failed exact match: say whether only whitespace differs, and show the
+/// closest line of the file to the first line it tried to replace.
+fn not_found_message(old: &str, find: &str, path: &str) -> String {
+    let mut msg = format!("old_string was not found in {path}.");
+    let norm = |s: &str| s.lines().map(|l| l.split_whitespace().collect::<Vec<_>>().join(" ")).collect::<Vec<_>>().join("\n");
+    if !norm(find).trim().is_empty() && norm(old).contains(norm(find).trim()) {
+        msg.push_str(" The text exists but differs in whitespace or indentation; copy it exactly from read_file output.");
+    }
+    let first = find.lines().map(str::trim).find(|l| !l.is_empty()).unwrap_or("");
+    if !first.is_empty() {
+        let best = old
+            .lines()
+            .enumerate()
+            .map(|(i, l)| (i + 1, l, TextDiff::from_chars(l.trim(), first).ratio()))
+            .max_by(|a, b| a.2.partial_cmp(&b.2).unwrap_or(std::cmp::Ordering::Equal));
+        if let Some((n, line, ratio)) = best {
+            if ratio > 0.5 {
+                msg.push_str(&format!(" Closest line in the file is {n}: `{}`.", line.trim()));
+            }
+        }
+    }
+    msg.push_str(" Re-read the file and copy the exact text, or use write_file to replace the whole file.");
+    msg
+}
+
 fn apply_edit(old: &str, find: &str, repl: &str, all: bool, path: &str) -> Result<String, String> {
     if find.is_empty() {
         return Err("old_string must not be empty (use write_file to create a file)".into());
@@ -116,7 +141,7 @@ fn apply_edit(old: &str, find: &str, repl: &str, all: bool, path: &str) -> Resul
     }
     let n = old.matches(find).count();
     if n == 0 {
-        return Err(format!("old_string was not found in {path}. Re-read the file and copy the exact text, including whitespace."));
+        return Err(not_found_message(old, find, path));
     }
     if n > 1 && !all {
         return Err(format!("old_string matches {n} places in {path}. Include more surrounding lines to make it unique, or set replace_all."));

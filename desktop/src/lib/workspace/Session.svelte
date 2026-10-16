@@ -93,6 +93,21 @@
   const runsById = $derived(new Map(ag.runs.map((r) => [r.id, r])));
   const support = $derived(toolSupport(chatModel?.name));
   const supportHint = $derived(supportNote(support));
+  // A permission request must never hide below the fold: bring it into view and keep a banner on the composer.
+  const waiting = $derived(
+    ag.runs.at(-1)?.items.find((i): i is Extract<(typeof ag.runs)[number]['items'][number], { kind: 'tool' }> => i.kind === 'tool' && i.approval?.state === 'waiting'),
+  );
+  function revealApproval() {
+    const el = scroller?.querySelector(`[data-call="${waiting?.callId}"]`);
+    el?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    (el?.querySelector('[role="alertdialog"] button') as HTMLElement | null)?.focus();
+  }
+  $effect(() => {
+    if (waiting) {
+      stick = true;
+      tick().then(revealApproval);
+    }
+  });
   const panelOpen = $derived(mode === 'code' && !!ag.project && projPanel && width >= 900);
   // Refresh the project panel whenever a file or command finished (not on every streamed token).
   const panelKey = $derived(ag.runs.at(-1)?.items.filter((i) => i.kind === 'tool' && i.status !== 'running' && i.status !== 'awaiting').length ?? 0);
@@ -704,6 +719,7 @@
                 <button type="button" class="ptoggle" class:on={projPanel} aria-pressed={projPanel} onclick={() => (projPanel = !projPanel)} title="Project files, changes and diffs"><PanelRight />Project</button>
               {/if}
             </div>
+            {#if waiting}<button type="button" class="needs" onclick={revealApproval}>⚠ Waiting for your approval: {waiting.approval?.title}. <u>Review</u></button>{/if}
             {#if supportHint}<p class="support" title={supportHint}>⚠ {supportHint}</p>{/if}
           {/if}
         {/snippet}
@@ -798,6 +814,7 @@
   .ptoggle { display: inline-flex; align-items: center; gap: 5px; height: 26px; padding: 0 9px; margin-bottom: 4px; border-radius: var(--r-full); border: 1px solid var(--line-1); background: var(--bg-0); color: var(--text-1); font-size: var(--fs-xs); cursor: pointer; flex-shrink: 0; }
   .ptoggle :global(svg) { width: 13px; height: 13px; color: var(--accent); }
   .ptoggle.on, .ptoggle:hover { background: var(--select-bg); }
+  .needs { display: block; width: 100%; margin: 0 0 6px; padding: 7px 12px; border-radius: var(--r-md); border: 1px solid var(--warn); background: var(--warn-bg); color: var(--text-0); font-size: var(--fs-sm); text-align: left; cursor: pointer; }
   .support { margin: 0 4px 4px; font-size: var(--fs-xs); color: var(--text-2); }
   .agenterr { padding: 10px 14px; border-radius: var(--r-lg); border: 1px solid var(--warn); background: var(--warn-bg); font-size: var(--fs-sm); }
   .codeset p { margin: 0 0 8px; font-size: var(--fs-sm); }

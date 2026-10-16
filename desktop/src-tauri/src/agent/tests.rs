@@ -70,6 +70,15 @@ async fn creates_edits_and_reports_real_diffs() {
         ToolResponse::Error { content, .. } => assert!(content.contains("matches 2 places")),
         o => panic!("{o:?}"),
     }
+    ok(e.auto("write_file", json!({"path": "code.js", "content": "function slugify(text) {\n    return text.trim();\n}\n"})).await);
+    match e.auto("edit_file", json!({"path": "code.js", "old_string": "\treturn text.trim();", "new_string": "x"})).await {
+        ToolResponse::Error { content, .. } => assert!(content.contains("whitespace or indentation") && content.contains("Closest line in the file is 2"), "{content}"),
+        o => panic!("{o:?}"),
+    }
+    match e.auto("edit_file", json!({"path": "code.js", "old_string": "return text.toUpper();", "new_string": "x"})).await {
+        ToolResponse::Error { content, .. } => assert!(content.contains("Closest line in the file is 2") && content.contains("return text.trim();"), "{content}"),
+        o => panic!("{o:?}"),
+    }
     match e.auto("edit_file", json!({"path": "d.txt", "old_string": "zzz", "new_string": "y"})).await {
         ToolResponse::Error { content, .. } => assert!(content.contains("not found")),
         o => panic!("{o:?}"),

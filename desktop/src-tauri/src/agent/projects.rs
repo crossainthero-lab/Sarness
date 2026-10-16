@@ -31,6 +31,9 @@ pub fn add(file: &Path, path: &Path) -> Result<Vec<Project>, String> {
     if !canon.is_dir() {
         return Err(format!("{} is not a folder", canon.display()));
     }
+    if canon.components().any(|c| c.as_os_str() == ".git") {
+        return Err("That is a Git internals folder. Choose the repository folder that contains it.".into());
+    }
     if canon == Path::new("/") || dirs::home_dir().is_some_and(|h| h == canon) {
         return Err("Choose a project folder, not the filesystem root or your whole home directory.".into());
     }
@@ -80,6 +83,9 @@ mod tests {
         assert_eq!(list.len(), 1);
         assert_eq!(load(&f)[0].name, "my app");
         assert!(add(&f, Path::new("/")).is_err());
+        let git = made.join(".git");
+        std::fs::create_dir(&git).unwrap();
+        assert!(add(&f, &git).unwrap_err().contains("Git internals"));
         assert!(remove(&f, &list[0].path).unwrap().is_empty());
     }
 }

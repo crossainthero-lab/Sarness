@@ -19,8 +19,8 @@
   );
   const busy = $derived(item.status === 'running');
   const title = $derived.by(() => {
-    if (item.status === 'denied' && item.name === 'run_command') return `Declined: ${a.command ?? ''}`;
-    if (item.status === 'denied' || item.status === 'cancelled') return `${item.status === 'denied' ? 'Declined' : 'Stopped'}: ${item.name.replace(/_/g, ' ')} ${a.path ?? a.command ?? ''}`;
+    if (item.status === 'denied' && item.name === 'run_command') return `Not run: ${a.command ?? ''}`;
+    if (item.status === 'denied' || item.status === 'cancelled') return `${item.status === 'denied' ? 'Not run' : 'Stopped'}: ${item.name.replace(/_/g, ' ')} ${a.path ?? a.command ?? ''}`;
     switch (item.name) {
       case 'read_file': return `Read ${a.path ?? ''}`;
       case 'list_dir': return `Listed ${a.path || 'project'}`;
@@ -69,7 +69,7 @@
   const hasDetail = $derived(!!(item.live || ui?.kind === 'command' || ui?.diff || item.content));
 </script>
 
-<div class="tool" class:failed class:denied={item.status === 'denied'} data-status={item.status}>
+<div class="tool" data-call={item.callId} class:failed class:denied={item.status === 'denied'} data-status={item.status}>
   <button type="button" class="row" aria-expanded={open} disabled={!hasDetail && !item.approval} onclick={() => (open = !open)}>
     <span class="st" aria-hidden="true">
       {#if busy}<Spinner size={13} />{:else if item.status === 'done'}<Check class="ok" />{:else if item.status === 'failed'}<X class="bad" />{:else if item.status === 'awaiting'}<span class="wait"></span>{:else}<CircleSlash class="dim" />{/if}
@@ -77,7 +77,7 @@
     {#if icon}{@const I = icon}<I class="ti" />{/if}
     <span class="title truncate selectable">{title}</span>
     {#if meta}<span class="meta" class:bad={failed}>{meta}</span>{/if}
-    {#if item.status === 'denied'}<span class="meta">declined</span>{:else if item.status === 'cancelled'}<span class="meta">stopped</span>{/if}
+    {#if item.status === 'denied'}<span class="meta">{item.approval?.state === 'denied' ? 'declined by you' : 'not run'}</span>{:else if item.status === 'cancelled'}<span class="meta">stopped</span>{/if}
     {#if hasDetail}<ChevronRight class="chev {open ? 'open' : ''}" />{/if}
   </button>
   {#if item.approval}
