@@ -16,6 +16,10 @@
     onpermission: (m: PermissionMode) => void;
   } = $props();
 
+  const shortPath = (p: string) => {
+    const t = p.replace(/^\/home\/[^/]+/, '~').split('/');
+    return t.length > 4 ? `${t[0]}/…/${t.slice(-2).join('/')}` : t.join('/');
+  };
   let menu = $state<{ open: boolean; x: number; y: number; items: MenuItem[] }>({ open: false, x: 0, y: 0, items: [] });
 
   async function refresh() {
@@ -59,7 +63,7 @@
       x: r.left,
       y: Math.max(8, r.top - 12 - Math.min(agentStore.projects.length + 3, 9) * 36),
       items: [
-        ...agentStore.projects.slice(0, 8).map((p) => ({ label: p.name, hint: p.path.replace(/^\/home\/[^/]+/, '~'), icon: p.path === project ? Check : Folder, run: () => onproject(p.path) })),
+        ...agentStore.projects.slice(0, 8).map((p) => ({ label: p.name, hint: shortPath(p.path), icon: p.path === project ? Check : Folder, run: () => onproject(p.path) })),
         ...(agentStore.projects.length ? [{ separator: true }] : []),
         { label: 'Open folder…', icon: FolderOpen, run: openFolder },
         { label: 'New project…', icon: FolderPlus, run: newProject },

@@ -75,10 +75,13 @@ export interface AgentRun {
   model: string | null;
   permission: PermissionMode;
   items: AgentItem[];
+  phase?: Phase; // live status while running
+  drafting?: string; // name of the tool call the model is currently writing
 }
 
 export type LoopEvent =
   | { type: 'phase'; phase: Phase }
+  | { type: 'drafting'; name: string | null }
   | { type: 'text'; id: string; text: string; reasoning: string; final?: boolean } // cumulative content of one assistant turn
   | { type: 'tool_start'; id: string; callId: string; name: string; args: Record<string, unknown> }
   | { type: 'tool_approval'; callId: string; approval: ApprovalInfo }

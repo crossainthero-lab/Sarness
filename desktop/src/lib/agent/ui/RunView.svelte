@@ -30,7 +30,7 @@
 
   <div class="status" class:live data-status={run.status} role="status" aria-live="polite">
     {#if live}<Spinner size={13} />{:else if run.status === 'completed'}<CheckCircle2 class="ok" />{:else if run.status === 'cancelled'}<OctagonX class="dim" />{:else}<AlertTriangle class="warn" />{/if}
-    <strong>{statusLabel}</strong>
+    <strong>{statusLabel}</strong>{#if live && run.drafting}<span class="faint">writing {run.drafting.replace(/_/g, ' ')}…</span>{/if}
     <span class="faint">{run.permission === 'ask' ? 'Ask' : run.permission === 'full_access' ? 'Full Access' : 'Workspace Auto'}</span>
   </div>
 
@@ -44,7 +44,7 @@
           </div>
         {/if}
       {:else if it.kind === 'tool'}
-        <ToolCard item={it} {onapprove} />
+        {#if it.name !== 'update_plan'}<ToolCard item={it} {onapprove} />{/if}
       {:else if it.kind === 'plan'}
         <PlanCard steps={it.steps} />
       {:else}
@@ -73,7 +73,7 @@
       <div class="sh">
         <strong>Summary</strong>
         <span class="vf {sum.verification}">
-          {sum.verification === 'passed' ? 'Verified: checks passed' : sum.verification === 'failed' ? 'Last check failed' : sum.verification === 'stale' ? 'Changed after the last passing check' : 'Not verified (no build or test was run)'}
+          {sum.verification === 'passed' ? 'Last build/test command exited 0' : sum.verification === 'failed' ? 'Last build/test command failed' : sum.verification === 'stale' ? 'Files changed after the last passing command' : 'Nothing was built or tested'}
         </span>
       </div>
       {#if sum.files.length}
@@ -94,6 +94,7 @@
         </ul>
         {#if failedCmds}<p class="faint small">{failedCmds} command{failedCmds === 1 ? '' : 's'} exited with an error along the way.</p>{/if}
       {/if}
+      <p class="faint small">Sarness reports real exit codes. It cannot judge whether the tests themselves are meaningful, so review the diffs.</p>
       <div class="sacts"><Button size="sm" variant="ghost" onclick={() => onchanges()}>Review all changes</Button></div>
     </div>
   {/if}

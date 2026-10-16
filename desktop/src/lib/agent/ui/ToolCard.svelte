@@ -51,6 +51,15 @@
       if (busy && item.live) open = true;
     }
   });
+  // A finished command folds away when it succeeded; failures stay open so the cause is visible.
+  let wasBusy = false;
+  $effect(() => {
+    if (busy) wasBusy = true;
+    else if (wasBusy) {
+      wasBusy = false;
+      if (item.status === 'done') open = false;
+    }
+  });
   $effect(() => {
     void item.live;
     if (term && busy) term.scrollTop = term.scrollHeight;
@@ -107,5 +116,5 @@
   .row :global(.chev.open) { transform: rotate(90deg); }
   .detail { padding: 0 10px 10px; }
   .termhead { display: flex; justify-content: space-between; color: var(--text-3); font-size: var(--fs-xs); padding: 0 2px 4px; }
-  .term { margin: 0; padding: 10px 12px; max-height: 320px; overflow: auto; border-radius: var(--r-md); background: #15181a; color: #d7e0e0; font: 12px/1.5 var(--font-mono, ui-monospace, monospace); white-space: pre-wrap; word-break: break-word; }
+  .term { margin: 0; padding: 10px 12px; max-height: 240px; overflow: auto; border-radius: var(--r-md); background: #15181a; color: #d7e0e0; font: 12px/1.5 var(--font-mono, ui-monospace, monospace); white-space: pre-wrap; word-break: break-word; }
 </style>

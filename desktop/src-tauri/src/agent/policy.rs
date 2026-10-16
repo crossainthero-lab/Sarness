@@ -48,6 +48,7 @@ pub struct CmdFlags {
 // ------------------------------------------------------------------ tokenizer
 /// Splits a shell string into command segments of words (quotes honoured). Returns the
 /// segments and whether an unquoted redirection occurred.
+#[allow(unused_assignments)]
 pub fn tokenize(cmd: &str) -> (Vec<Vec<String>>, bool) {
     let mut segs: Vec<Vec<String>> = vec![];
     let mut cur: Vec<String> = vec![];

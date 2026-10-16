@@ -611,7 +611,7 @@
     }
   }
 
-  const chips = $derived(summaryFor(mode, session, mode === 'image' ? imageModel : videoModel, { temperature: conv?.params?.temperature }));
+  const chips = $derived(mode === 'code' ? ['tools run on this computer'] : summaryFor(mode, session, mode === 'image' ? imageModel : videoModel, { temperature: conv?.params?.temperature }));
   const noModels = $derived(
     models.loaded && (isTextMode(mode) ? !models.chatModels.length : !byCategory(mode as 'image' | 'video').length),
   );

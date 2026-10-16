@@ -157,7 +157,7 @@ export class AgentController {
     const modelRef = run.model ?? ref!;
 
     const deps: LoopDeps = {
-      model: (messages, sig, onDelta) => this.callModel(modelRef, messages, sig, onDelta),
+      model: (messages, sig, onDelta, onTool) => this.callModel(modelRef, messages, sig, onDelta, onTool),
       tool: async (req) => {
         try {
           return await native.call({ workspace: project, run_id: run.id, call_id: req.call_id, tool: req.tool, args: req.args, mode: st.permission, approval_id: req.approval_id ?? null });
@@ -191,6 +191,8 @@ export class AgentController {
     run.status = outcome.status === 'completed' ? 'completed' : outcome.status;
     run.reason = 'reason' in outcome ? outcome.reason : undefined;
     run.ended = Date.now() / 1000;
+    run.phase = undefined;
+    run.drafting = undefined;
     for (const it of run.items) if (it.kind === 'tool' && (it.status === 'running' || it.status === 'awaiting')) it.status = 'cancelled';
     this.unlisten?.();
     this.unlisten = null;
@@ -203,7 +205,7 @@ export class AgentController {
     });
   }
 
-  private async callModel(modelRef: string, messages: AgentMessage[], signal: AbortSignal, onDelta: (c: string, r: string) => void): Promise<ModelTurn> {
+  private async callModel(modelRef: string, messages: AgentMessage[], signal: AbortSignal, onDelta: (c: string, r: string) => void, onTool?: (name: string) => void): Promise<ModelTurn> {
     toolsCache ??= await native.toolDefs();
     let content = '';
     let reasoning = '';
@@ -211,13 +213,14 @@ export class AgentController {
     try {
       await streamChat(
         '/v1/agent/completions',
-        { model_ref: modelRef, messages, tools: toolsCache, tool_choice: 'auto', params: { temperature: 0.2, max_tokens: 8192, thinking: false } },
+        { model_ref: modelRef, messages, tools: toolsCache, tool_choice: 'auto', params: { temperature: 0.2, max_tokens: 4096, thinking: false } },
         (ev: any) => {
           if (ev.type === 'delta') {
             content += ev.content ?? '';
             reasoning += ev.reasoning ?? '';
             onDelta(content, reasoning);
-          } else if (ev.type === 'done') done = ev;
+          } else if (ev.type === 'tool_call') onTool?.(ev.name);
+          else if (ev.type === 'done') done = ev;
           else if (ev.type === 'error') throw new Error(ev.message);
         },
         signal,

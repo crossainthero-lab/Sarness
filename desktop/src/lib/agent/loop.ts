@@ -6,7 +6,7 @@ import type { AgentMessage, ApprovalInfo, ChatToolCall, LoopEvent, ModelTurn, Ph
 
 export interface LoopDeps {
   /** Streams one model turn. `onDelta` receives incremental text. */
-  model(messages: AgentMessage[], signal: AbortSignal, onDelta: (content: string, reasoning: string) => void): Promise<ModelTurn>;
+  model(messages: AgentMessage[], signal: AbortSignal, onDelta: (content: string, reasoning: string) => void, onTool?: (name: string) => void): Promise<ModelTurn>;
   /** Executes a tool locally (native layer). Never throws for tool failures. */
   tool(req: Pick<ToolRequest, 'tool' | 'args' | 'call_id' | 'approval_id'>): Promise<ToolResponse>;
   /** Resolves true when the user approves, false when they deny (or the run is cancelled). */
@@ -109,6 +109,8 @@ export async function runLoop(messages: AgentMessage[], deps: LoopDeps, signal: 
   let step = 0;
   let nudgedText = false;
   let nudgedVerify = false;
+  let nudgedLength = false;
+  const recent: string[] = []; // signatures of recent tool calls, to catch an agent going in circles
   let unverifiedEdits = false; // files changed with no later successful command
   let turnSeq = 0;
 
@@ -127,7 +129,7 @@ export async function runLoop(messages: AgentMessage[], deps: LoopDeps, signal: 
     let shrunk = false;
     while (!turn) {
       try {
-        turn = await deps.model(trimTranscript(messages, budget), signal, (content, reasoning) => deps.emit({ type: 'text', id: turnId, text: content, reasoning }));
+        turn = await deps.model(trimTranscript(messages, budget), signal, (content, reasoning) => deps.emit({ type: 'text', id: turnId, text: content, reasoning }), (name) => deps.emit({ type: 'drafting', name }));
       } catch (e) {
         if (signal.aborted) return cancelled();
         if (isContextOverflow(e) && !shrunk) {
@@ -153,6 +155,14 @@ export async function runLoop(messages: AgentMessage[], deps: LoopDeps, signal: 
     if (turn.toolCalls.length) assistant.tool_calls = turn.toolCalls;
     messages.push(assistant);
 
+    deps.emit({ type: 'drafting', name: null });
+    // ---- cut off by the length limit with no tool call: ask for a shorter, step-wise reply once
+    if (turn.finish === 'length' && !turn.toolCalls.length && !nudgedLength) {
+      nudgedLength = true;
+      deps.emit({ type: 'notice', level: 'warn', text: 'The model’s reply hit the length limit and was cut off. Asking it to continue in smaller steps.' });
+      messages.push({ role: 'user', content: 'Your reply was cut off. Continue with smaller steps: make one focused tool call at a time and keep file contents short.' });
+      continue;
+    }
     // ---- no tool calls: finished, unless the model needs a nudge
     if (!turn.toolCalls.length) {
       if (looksLikeTextToolCall(turn.content) && !nudgedText) {
@@ -164,7 +174,7 @@ export async function runLoop(messages: AgentMessage[], deps: LoopDeps, signal: 
       if (unverifiedEdits && !nudgedVerify) {
         nudgedVerify = true;
         deps.emit({ type: 'notice', level: 'info', text: 'Files changed but nothing was run afterwards; asking the agent to verify.' });
-        messages.push({ role: 'user', content: 'You changed files but have not run any command since. Verify your work now (build, run tests, or start the app and check it), then report the real results. If verification is impossible here, say exactly why.' });
+        messages.push({ role: 'user', content: 'You changed files but have not run any command since. Verify your work now (build, run tests, or start the app and check it), then report the real results. Check each requirement of the original request against what you built; say plainly which are met, unmet or untested. If verification is impossible here, say exactly why.' });
         continue;
       }
       deps.emit({ type: 'text', id: turnId, text: turn.content, reasoning: turn.reasoning, final: true });
@@ -187,6 +197,16 @@ export async function runLoop(messages: AgentMessage[], deps: LoopDeps, signal: 
         messages.push({ role: 'tool', tool_call_id: call.id, content: msg });
         answered.add(call.id);
         continue;
+      }
+      const sig = `${name}:${JSON.stringify(args)}`;
+      recent.push(sig);
+      if (recent.length > 8) recent.shift();
+      if (recent.filter((x) => x === sig).length >= 4) {
+        const msg = `The agent repeated the same ${name} call 4 times without making progress.`;
+        deps.emit({ type: 'tool_result', callId: call.id, status: 'denied', content: msg, ui: null });
+        messages.push({ role: 'tool', tool_call_id: call.id, content: msg });
+        for (const c of turn.toolCalls as ChatToolCall[]) if (!answered.has(c.id) && c.id !== call.id) messages.push({ role: 'tool', tool_call_id: c.id, content: 'Skipped.' });
+        return { status: 'blocked', reason: `${msg} Use Continue task with new guidance, or stop and rephrase the request.` };
       }
       let res = await deps.tool({ tool: name, args, call_id: call.id });
       if (res.status === 'needs_approval') {

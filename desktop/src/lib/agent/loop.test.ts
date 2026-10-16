@@ -196,6 +196,39 @@ describe('agent loop', () => {
   });
 });
 
+describe('agent loop safety nets', () => {
+  it('stops an agent that repeats the same call without progress, keeping the transcript valid', async () => {
+    const same = () => turn('', call(`c${Math.random()}`, 'read_file', { path: 'a' }));
+    const h = harness(Array.from({ length: 10 }, same), () => ok('same'));
+    const msgs = base();
+    const out = await runLoop(msgs, h.deps, new AbortController().signal);
+    expect(out.status).toBe('blocked');
+    expect((out as any).reason).toContain('repeated the same read_file call');
+    expect(h.toolCalls).toHaveLength(3);
+    const ids = msgs.flatMap((m) => (m.role === 'assistant' && m.tool_calls ? m.tool_calls.map((c) => c.id) : []));
+    expect(msgs.filter((m) => m.role === 'tool').map((m: any) => m.tool_call_id)).toEqual(ids);
+  });
+  it('asks once for smaller steps when a reply is cut off by the length limit', async () => {
+    const cut: ModelTurn = { content: 'partial…', reasoning: '', toolCalls: [], finish: 'length' };
+    const h = harness([cut, turn('Finished.')], () => ok(''));
+    const out = await runLoop(base(), h.deps, new AbortController().signal);
+    expect(out.status).toBe('completed');
+    expect((h.seen[1].at(-1) as any).content).toContain('cut off');
+  });
+  it('reports which tool the model is drafting', async () => {
+    const events: LoopEvent[] = [];
+    const deps: LoopDeps = {
+      async model(_m, _s, _d, onTool) { onTool?.('write_file'); return turn('done'); },
+      async tool() { return ok(''); },
+      approve: async () => true,
+      emit: (e) => events.push(e),
+    };
+    await runLoop(base(), deps, new AbortController().signal);
+    expect(events).toContainEqual({ type: 'drafting', name: 'write_file' });
+    expect(events.at(-2)).toEqual({ type: 'drafting', name: null });
+  });
+});
+
 describe('helpers', () => {
   it('parseArgs', () => {
     expect(parseArgs('')).toEqual({ ok: true, args: {} });

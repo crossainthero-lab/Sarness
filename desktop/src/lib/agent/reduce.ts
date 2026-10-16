@@ -24,6 +24,7 @@ export function applyEvent(run: AgentRun, e: LoopEvent, now = Date.now() / 1000)
       break;
     }
     case 'tool_start': {
+      run.drafting = undefined;
       // Drop an empty narration item left by a turn that only called tools.
       run.items.push({ kind: 'tool', id: `tool-${e.callId}`, callId: e.callId, name: e.name, args: e.args, status: 'running', startedAt: now });
       break;
@@ -63,6 +64,10 @@ export function applyEvent(run: AgentRun, e: LoopEvent, now = Date.now() / 1000)
       run.items.push({ kind: 'notice', id: `n${run.items.length}-${Math.random().toString(36).slice(2, 6)}`, level: e.level, text: e.text });
       break;
     case 'phase':
+      run.phase = e.phase;
+      break;
+    case 'drafting':
+      run.drafting = e.name ?? undefined;
       break;
   }
 }
@@ -128,6 +133,7 @@ export function summarize(run: AgentRun): RunSummary {
 }
 
 export function currentPhase(run: AgentRun): Phase {
+  if (run.status === 'running' && run.phase) return run.phase;
   if (run.status === 'completed') return 'Completed';
   if (run.status === 'cancelled') return 'Stopped';
   if (run.status === 'blocked') return 'Blocked';
