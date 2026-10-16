@@ -208,7 +208,7 @@ fn classify_into(cmd: &str, ws: &Workspace, f: &mut CmdFlags, depth: u8) {
         let Some(prog) = w.first().map(|p| base(p).to_string()) else { continue };
         let args = &w[1..];
         let argstr: Vec<&str> = args.iter().map(String::as_str).collect();
-        let has = |s: &str| argstr.iter().any(|a| *a == s);
+        let has = |s: &str| argstr.contains(&s);
         let sub = argstr.iter().find(|a| !a.starts_with('-')).copied().unwrap_or("");
         let mut seg_safe = SAFE_PROGRAMS.contains(&prog.as_str());
         if matches!(prog.as_str(), "sed" | "awk") && (has("-i") || argstr.iter().any(|a| a.starts_with("-i"))) {

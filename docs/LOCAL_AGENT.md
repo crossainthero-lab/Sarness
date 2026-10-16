@@ -92,3 +92,26 @@ cd desktop/src-tauri && cargo test --lib agent     # native tools, policy, proce
 cd desktop && npx vitest run src/lib/agent          # loop, reducers, persistence (scripted models)
 cd engine && .venv/bin/python -m pytest tests/test_agent_api.py
 ```
+
+### End-to-end check against a real model (no GPU server needed)
+
+The loop, tools and UI can be exercised with any OpenAI-compatible tool-calling model, e.g. a local
+`llama-server --jinja` with a Qwen 2.5/3 GGUF, without touching your real connection profile:
+
+```bash
+# 1. a throwaway engine that points at the model (the agent route is stateless)
+sarness-engine --data-dir /tmp/e2e-engine init --host 127.0.0.1 --port 18743 --json   # prints a token
+sarness-engine --data-dir /tmp/e2e-engine serve &
+curl -X PATCH -H "Authorization: Bearer $TOKEN" -H 'content-type: application/json' \
+  -d '{"llm_endpoints":[{"id":"loc","name":"local","base_url":"http://127.0.0.1:18090/v1","models":["qwen3-8b"]}]}' \
+  http://127.0.0.1:18743/v1/settings
+
+# 2. the desktop app with its own config/data dirs and no keyring (token in a private file)
+XDG_CONFIG_HOME=/tmp/e2e/config XDG_DATA_HOME=/tmp/e2e/data XDG_CACHE_HOME=/tmp/e2e/cache \
+  env -u DBUS_SESSION_BUS_ADDRESS ./desktop/src-tauri/target/release/sarness
+#   /tmp/e2e/config/sarness/profiles.json -> {"profiles":[{id,name,host:"127.0.0.1",port:18743,scheme:"http",mode:"direct",ssh:null,has_token:true}],"active":id}
+#   /tmp/e2e/config/sarness/secrets.json  -> {"<id>": "<token>"}   (chmod 600)
+```
+
+Use a disposable project folder, then check the result yourself (`git diff`, run the tests): the agent's
+summary is evidence, not proof.

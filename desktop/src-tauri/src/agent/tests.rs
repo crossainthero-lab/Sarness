@@ -337,3 +337,13 @@ fn snapshot_sees_changes_made_by_any_means() {
     assert_ne!(before["files"]["a.txt"], after["files"]["a.txt"]);
     assert_eq!(super::fstools::snapshot(d.path(), 1)["truncated"], true);
 }
+
+#[tokio::test]
+async fn shutdown_stops_every_background_process_even_mid_task() {
+    let e = env();
+    let (c, _) = ok(e.call_as("run-sd", "start_process", json!({"command": "echo pid=$$; sleep 31340", "wait_ms": 1200}), Mode::WorkspaceAuto, None).await);
+    let pid = pid_after(&c, "pid=");
+    assert!(std::path::Path::new(&format!("/proc/{pid}")).exists(), "process should be running before shutdown");
+    e.engine.shutdown().await; // what the app does on exit
+    assert!(gone(&pid).await, "background process survived app shutdown");
+}

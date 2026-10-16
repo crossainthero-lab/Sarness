@@ -190,8 +190,8 @@ impl Processes {
         let exit = Arc::new(Mutex::new(None));
         static NEXT: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(1);
         let id = format!("proc-{}", NEXT.fetch_add(1, std::sync::atomic::Ordering::Relaxed));
-        let _ = pump(child.stdout.take().unwrap(), buf.clone(), "stdout", run_id.into(), id.clone(), None);
-        let _ = pump(child.stderr.take().unwrap(), buf.clone(), "stderr", run_id.into(), id.clone(), None);
+        drop(pump(child.stdout.take().unwrap(), buf.clone(), "stdout", run_id.into(), id.clone(), None));
+        drop(pump(child.stderr.take().unwrap(), buf.clone(), "stderr", run_id.into(), id.clone(), None));
         let ex = exit.clone();
         tokio::spawn(async move {
             let st = child.wait().await.ok().and_then(|s| s.code());
